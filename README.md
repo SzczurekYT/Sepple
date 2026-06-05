@@ -1,1 +1,1 @@
-Spell engine
+Rust speech to IPA recognition library

@@ -1,2 +1,8 @@
-model/
+# Audio files
+*.mp3
+*.wav
+*.ogg
 *.flac
+
+/model/*.onnx
+/target

@@ -1,0 +1,11 @@
+[package]
+name = "multipa-model"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+burn.workspace = true
+burn-store.workspace = true
+
+[build-dependencies]
+burn-onnx.workspace = true
