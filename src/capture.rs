@@ -25,8 +25,10 @@ pub fn start_audio_capture() -> Receiver<Vec<f32>> {
             &config,
             move |data: &[i16], _: &cpal::InputCallbackInfo| {
                 // Normalize i16 to f32 [-1.0, 1.0]
-                let normalized: Vec<f32> =
-                    data.iter().map(|&s| s as f32 / i16::MAX as f32).collect();
+                let normalized: Vec<f32> = data
+                    .iter()
+                    .map(|&s| s as f32 / (i16::MAX as f32 + 1.0))
+                    .collect();
 
                 buffer.extend_from_slice(&normalized);
 

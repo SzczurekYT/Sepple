@@ -35,7 +35,7 @@ pub fn read_wav_to_f32<P: AsRef<Path>>(path: P) -> Vec<f32> {
     // normalize to [-1.0, 1.0]
     reader
         .samples::<i16>()
-        .map(|s| s.unwrap() as f32 / i16::MAX as f32)
+        .map(|s| s.unwrap() as f32 / (i16::MAX as f32 + 1.0))
         .collect()
 }
 
