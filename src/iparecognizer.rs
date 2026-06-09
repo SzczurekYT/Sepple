@@ -1,6 +1,10 @@
 use std::{collections::HashMap, fs};
 
-use burn::{Tensor, prelude::Backend, tensor::backend::BackendTypes};
+use burn::{
+    Tensor,
+    prelude::Backend,
+    tensor::{backend::BackendTypes, s},
+};
 
 use multipa_model::Model;
 use serde_json::Value;
@@ -55,7 +59,7 @@ impl<B: Backend + BackendTypes> IpaRecognizer<B> {
         tokens
     }
 
-    pub fn decode(&self, tokens: &[i32]) -> String {
+    pub fn decode_tokens(&self, tokens: &[i32]) -> String {
         tokens
             .iter()
             .map(|id| {
@@ -93,4 +97,20 @@ where
 {
     // float array tensor reshaped to [1, len]
     Tensor::<B, 1>::from_floats(samples, device).unsqueeze_dim(0)
+}
+
+pub fn z_score_normalize(input: &[f32]) -> Vec<f32> {
+    const EPSILON: f32 = 1e-9;
+    let len = input.len() as f32;
+    let mean = input.iter().sum::<f32>() / len;
+    let variance: f32 = input
+        .iter()
+        .map(|value| (value - mean).powi(2))
+        .sum::<f32>()
+        / len;
+    let std_deviation = variance.sqrt();
+    input
+        .iter()
+        .map(|value| (value - mean) / (std_deviation + EPSILON))
+        .collect()
 }

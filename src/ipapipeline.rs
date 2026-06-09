@@ -48,7 +48,8 @@ impl IpaPipeline {
                 let buf = &self.buffer[..sample_count];
                 let result = self.recognizer.process(buf);
                 self.buffer.drain(..sample_count);
-                println!("Result len {}", result.len());
+                let result = self.recognizer.greedy_ctc_decode(&result);
+                println!("Text: {}", self.recognizer.decode_tokens(&result))
             }
         }
     }

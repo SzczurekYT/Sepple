@@ -4,14 +4,28 @@ pub mod iparecognizer;
 
 use std::{collections::HashMap, fs, path::Path, time::Instant};
 
+use burn::backend::Flex;
 use hound::WavReader;
 
-use crate::ipapipeline::{IpaPipeline, SAMPLE_RATE_U32};
+use crate::{
+    ipapipeline::SAMPLE_RATE_U32,
+    iparecognizer::{IpaRecognizer, z_score_normalize},
+};
+
+// fn main() {
+//     let audio_tx = capture::start_audio_capture();
+//     let mut pipeline = IpaPipeline::init(audio_tx);
+//     pipeline.run();
+// }
 
 fn main() {
-    let audio_tx = capture::start_audio_capture();
-    let mut pipeline = IpaPipeline::init(audio_tx);
-    pipeline.run();
+    let recognizer = IpaRecognizer::<Flex>::init();
+    let samples = read_wav_to_f32("test.wav");
+    let normalized = z_score_normalize(&samples);
+    let result = recognizer.process(&normalized);
+    let result = recognizer.greedy_ctc_decode(&result);
+    let result = recognizer.decode_tokens(&result);
+    println!("Out: {result}");
 }
 
 pub fn load_vocab(path: &str) -> HashMap<usize, String> {
