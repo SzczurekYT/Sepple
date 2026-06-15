@@ -1,4 +1,7 @@
-use std::sync::mpsc::{self, Receiver};
+use std::{
+    sync::mpsc::{self, Receiver},
+    thread,
+};
 
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 
@@ -44,10 +47,10 @@ pub fn start_audio_capture() -> Receiver<Vec<f32>> {
         )
         .expect("Failed to build input stream");
 
-    std::thread::spawn(move || {
+    thread::spawn(move || {
         stream.play().expect("Failed to start audio stream");
         loop {
-            std::thread::sleep(std::time::Duration::from_secs(1));
+            thread::sleep(std::time::Duration::from_secs(1));
         }
     });
 

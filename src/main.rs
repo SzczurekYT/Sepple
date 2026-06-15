@@ -2,7 +2,7 @@ pub mod capture;
 pub mod ipapipeline;
 pub mod iparecognizer;
 
-use std::{collections::HashMap, fs, path::Path, time::Instant};
+use std::{collections::HashMap, fs, path::Path};
 
 use burn::backend::Flex;
 use hound::WavReader;
@@ -25,7 +25,7 @@ fn main() {
     let result = recognizer.process(&normalized);
     let result = recognizer.greedy_ctc_decode(&result);
     let result = recognizer.decode_tokens(&result);
-    println!("Out: {result}");
+    println!("Result: {result}");
 }
 
 pub fn load_vocab(path: &str) -> HashMap<usize, String> {
@@ -51,14 +51,4 @@ pub fn read_wav_to_f32<P: AsRef<Path>>(path: P) -> Vec<f32> {
         .samples::<i16>()
         .map(|s| s.unwrap() as f32 / (i16::MAX as f32 + 1.0))
         .collect()
-}
-
-fn wrap_elapsed<R>(action: &str, f: impl FnOnce() -> R) -> R {
-    let now = Instant::now();
-
-    let result = f();
-
-    let elapsed = now.elapsed();
-    println!("{action} took {:.2?}", elapsed);
-    result
 }

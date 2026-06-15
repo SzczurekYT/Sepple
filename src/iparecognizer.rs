@@ -1,10 +1,6 @@
 use std::{collections::HashMap, fs};
 
-use burn::{
-    Tensor,
-    prelude::Backend,
-    tensor::{backend::BackendTypes, s},
-};
+use burn::{Tensor, prelude::Backend, tensor::backend::BackendTypes};
 
 use multipa_model::Model;
 use serde_json::Value;
@@ -29,11 +25,10 @@ impl<B: Backend + BackendTypes> IpaRecognizer<B> {
         }
     }
 
-    // Takes normalized audio samples, returns vector of non decoded token ids
+    /// Takes normalized audio samples, returns vector of non decoded token ids
     pub fn process(&self, input: &[f32]) -> Vec<i32> {
         let input_tensor = samples_to_tensor(input, &self.device);
         let logits = self.model.forward(input_tensor);
-        println!("Output shape {:?}", logits.shape());
         let logits_2d = logits.squeeze::<2>();
         let predicted_ids = logits_2d.argmax(1);
 
@@ -44,7 +39,6 @@ impl<B: Backend + BackendTypes> IpaRecognizer<B> {
     }
 
     pub fn greedy_ctc_decode(&self, ids: &[i32]) -> Vec<i32> {
-        // Greedy CTC merge algorithm
         let mut tokens = Vec::new();
         let mut prev: Option<i32> = None;
 
@@ -95,7 +89,7 @@ pub fn samples_to_tensor<B>(samples: &[f32], device: &B::Device) -> Tensor<B, 2>
 where
     B: Backend + BackendTypes,
 {
-    // float array tensor reshaped to [1, len]
+    // reshape to [1, len]
     Tensor::<B, 1>::from_floats(samples, device).unsqueeze_dim(0)
 }
 
