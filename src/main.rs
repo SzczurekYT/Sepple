@@ -2,31 +2,31 @@ pub mod capture;
 pub mod ipapipeline;
 pub mod iparecognizer;
 
-use std::{collections::HashMap, fs, path::Path};
+use std::{collections::HashMap, fs, path::Path, time::Duration};
 
-use burn::backend::Flex;
 use hound::WavReader;
 
-use crate::{
-    ipapipeline::SAMPLE_RATE_U32,
-    iparecognizer::{IpaRecognizer, z_score_normalize},
-};
-
-// fn main() {
-//     let audio_tx = capture::start_audio_capture();
-//     let mut pipeline = IpaPipeline::init(audio_tx);
-//     pipeline.run();
-// }
+use crate::ipapipeline::{IpaPipeline, SAMPLE_RATE_U32, SlidingWindowConfig};
 
 fn main() {
-    let recognizer = IpaRecognizer::<Flex>::init();
-    let samples = read_wav_to_f32("test.wav");
-    let normalized = z_score_normalize(&samples);
-    let result = recognizer.process(&normalized);
-    let result = recognizer.greedy_ctc_decode(&result);
-    let result = recognizer.decode_tokens(&result);
-    println!("Result: {result}");
+    let sliding_window_config = SlidingWindowConfig {
+        window_size: Duration::from_secs(2),
+        stride: Duration::from_millis(500),
+    };
+    let mut pipeline = IpaPipeline::init(sliding_window_config);
+    let audio_tx = capture::start_audio_capture(Duration::from_secs(1));
+    pipeline.run(audio_tx);
 }
+
+// fn main() {
+//     let recognizer = IpaRecognizer::<Flex>::init();
+//     let samples = read_wav_to_f32("test.wav");
+//     let normalized = z_score_normalize(&samples);
+//     let result = recognizer.process(&normalized);
+//     let result = recognizer.greedy_ctc_decode(&result);
+//     let result = recognizer.decode_tokens(&result);
+//     println!("Result: {result}");
+// }
 
 pub fn load_vocab(path: &str) -> HashMap<usize, String> {
     let data = fs::read_to_string(path).expect("Unable to read vocab.json");

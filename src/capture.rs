@@ -1,13 +1,14 @@
 use std::{
     sync::mpsc::{self, Receiver},
     thread,
+    time::Duration,
 };
 
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 
-use crate::ipapipeline::SAMPLE_RATE_U32;
+use crate::ipapipeline::{SAMPLE_RATE_F32, SAMPLE_RATE_U32};
 
-pub fn start_audio_capture() -> Receiver<Vec<f32>> {
+pub fn start_audio_capture(chunk_length: Duration) -> Receiver<Vec<f32>> {
     let (tx, rx) = mpsc::channel::<Vec<f32>>();
 
     let mut buffer = Vec::<f32>::new();
@@ -23,6 +24,8 @@ pub fn start_audio_capture() -> Receiver<Vec<f32>> {
         buffer_size: cpal::BufferSize::Default,
     };
 
+    let chunk_size = (chunk_length.as_secs_f32() * SAMPLE_RATE_F32) as usize;
+
     let stream = device
         .build_input_stream(
             &config,
@@ -35,8 +38,8 @@ pub fn start_audio_capture() -> Receiver<Vec<f32>> {
 
                 buffer.extend_from_slice(&normalized);
 
-                while buffer.len() >= 16_000 {
-                    let chunk: Vec<f32> = buffer.drain(..16_000).collect();
+                while buffer.len() >= chunk_size {
+                    let chunk: Vec<f32> = buffer.drain(..chunk_size).collect();
                     if tx.send(chunk).is_err() {
                         break;
                     }
