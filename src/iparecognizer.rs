@@ -25,6 +25,13 @@ impl<B: Backend + BackendTypes> IpaRecognizer<B> {
         }
     }
 
+    pub fn recognize(&self, input: &[f32]) -> String {
+        let normalized = z_score_normalize(input);
+        let result = self.process(&normalized);
+        let result = self.greedy_ctc_decode(&result);
+        self.decode_tokens(&result)
+    }
+
     /// Takes normalized audio samples, returns vector of non decoded token ids
     pub fn process(&self, input: &[f32]) -> Vec<i32> {
         let input_tensor = samples_to_tensor(input, &self.device);
