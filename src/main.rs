@@ -53,7 +53,7 @@ fn run_pipeline(input: Option<Vec<f32>>) {
         window_size: Duration::from_secs(2),
         stride: Duration::from_millis(500),
     };
-    let mut pipeline = IpaPipeline::init(sliding_window_config);
+    let pipeline = IpaPipeline::init(sliding_window_config);
     println!("Load done");
     pipeline.run(audio_rx);
 }
