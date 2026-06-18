@@ -54,7 +54,7 @@ fn run_pipeline(input: Option<Vec<f32>>) {
         stride: Duration::from_millis(500),
     };
     let pipeline = IpaPipeline::init(sliding_window_config);
-    println!("Load done");
+    println!("Load done, transcribing:");
     pipeline.run(audio_rx);
 }
 

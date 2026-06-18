@@ -21,7 +21,7 @@ pub struct IpaPipeline {
     recognizer: IpaRecognizer<Flex>,
     config: SlidingWindowConfig,
     buffer: Vec<f32>,
-    token_buffer: Vec<i32>,
+    text_buffer: String,
 }
 
 impl IpaPipeline {
@@ -33,7 +33,7 @@ impl IpaPipeline {
             buffer: Vec::with_capacity(
                 (config.window_size.as_secs() + 1) as usize * SAMPLE_RATE_USIZE,
             ),
-            token_buffer: Vec::with_capacity(200),
+            text_buffer: String::with_capacity(100),
             config,
         }
     }
@@ -54,16 +54,13 @@ impl IpaPipeline {
             (SAMPLE_RATE_F32 * self.config.stride.as_secs_f32()).round() as usize;
         let stride_logit_count = time_to_logit_count(self.config.stride);
         let processed_chunk_sample_count = window_sample_count - 2 * stride_sample_count;
+
         thread::scope(|s| {
             loop {
                 let data = match receiver.try_recv() {
                     Ok(data) => data,
                     Err(TryRecvError::Disconnected) => {
-                        let ctc_decoded = recognizer.greedy_ctc_decode(&self.token_buffer);
-                        println!(
-                            "Pipeline finished, text in buffer: {}",
-                            recognizer.decode_tokens(&ctc_decoded)
-                        );
+                        println!("Pipeline finished, text in buffer: {}", self.text_buffer);
                         break;
                     }
                     Err(TryRecvError::Empty) => {
@@ -100,9 +97,21 @@ impl IpaPipeline {
                     let (_, logits) = values_buffer.swap_remove(index);
                     let cut_logits =
                         &logits[stride_logit_count..(logits.len() - stride_logit_count)];
-                    self.token_buffer.extend(cut_logits);
                     let ctc_decoded = recognizer.greedy_ctc_decode(cut_logits);
-                    println!("Text: {}", recognizer.decode_tokens(&ctc_decoded));
+                    let decoded_text = recognizer.decode_tokens(&ctc_decoded);
+                    let text = decoded_text.trim();
+
+                    let has_new_text = !text.is_empty();
+                    if has_new_text {
+                        self.text_buffer += text;
+                    } else if !self.text_buffer.ends_with(" ") {
+                        self.text_buffer.push(' ');
+                    }
+
+                    if has_new_text {
+                        println!("Text: {}", self.text_buffer);
+                    }
+
                     next_finished_task_id += 1;
                 }
             }
