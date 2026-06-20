@@ -6170,6 +6170,8 @@ dependencies = [
  "multipa-model",
  "serde",
  "serde_json",
+ "strsim",
+ "unicode-segmentation",
 ]
 
 [[package]]

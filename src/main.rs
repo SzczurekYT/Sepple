@@ -1,4 +1,5 @@
 pub mod capture;
+pub mod dictionary;
 pub mod ipapipeline;
 pub mod iparecognizer;
 
@@ -53,7 +54,7 @@ fn run_pipeline(input: Option<Vec<f32>>) {
         window_size: Duration::from_secs(2),
         stride: Duration::from_millis(500),
     };
-    let pipeline = IpaPipeline::init(sliding_window_config);
+    let mut pipeline = IpaPipeline::init(sliding_window_config);
     println!("Load done, transcribing:");
     pipeline.run(audio_rx);
 }

@@ -9,7 +9,10 @@ use std::{
 
 use burn::backend::Flex;
 
-use crate::iparecognizer::{IpaRecognizer, z_score_normalize};
+use crate::{
+    dictionary::Dictionary,
+    iparecognizer::{IpaRecognizer, z_score_normalize},
+};
 
 pub const SAMPLE_RATE_U32: u32 = 16_000;
 pub const SAMPLE_RATE_USIZE: usize = 16_000;
@@ -18,15 +21,16 @@ pub const DOWNSAMPLE_RATE_F32: f32 = 320.0;
 pub const TIME_TO_LOGIT_FACTOR: f32 = SAMPLE_RATE_F32 / DOWNSAMPLE_RATE_F32;
 
 pub struct IpaPipeline {
-    recognizer: IpaRecognizer<Flex>,
+    recognizer: Arc<IpaRecognizer<Flex>>,
     config: SlidingWindowConfig,
     buffer: Vec<f32>,
     text_buffer: String,
+    dictionary: Dictionary,
 }
 
 impl IpaPipeline {
     pub fn init(config: SlidingWindowConfig) -> Self {
-        let recognizer = IpaRecognizer::init();
+        let recognizer = IpaRecognizer::init().into();
         Self {
             recognizer,
 
@@ -35,12 +39,11 @@ impl IpaPipeline {
             ),
             text_buffer: String::with_capacity(100),
             config,
+            dictionary: Dictionary::load(),
         }
     }
 
-    pub fn run(mut self, receiver: Receiver<Vec<f32>>) {
-        let recognizer = Arc::new(self.recognizer);
-
+    pub fn run(&mut self, receiver: Receiver<Vec<f32>>) {
         let mut values_buffer = Vec::with_capacity(4);
 
         let mut next_task_id: u32 = 0;
@@ -77,7 +80,7 @@ impl IpaPipeline {
                     let task_id = next_task_id;
                     next_task_id += 1;
 
-                    let recognizer = Arc::clone(&recognizer);
+                    let recognizer = Arc::clone(&self.recognizer);
                     let thread_sender = thread_sender.clone();
 
                     s.spawn(move || {
@@ -97,8 +100,8 @@ impl IpaPipeline {
                     let (_, logits) = values_buffer.swap_remove(index);
                     let cut_logits =
                         &logits[stride_logit_count..(logits.len() - stride_logit_count)];
-                    let ctc_decoded = recognizer.greedy_ctc_decode(cut_logits);
-                    let decoded_text = recognizer.decode_tokens(&ctc_decoded);
+                    let ctc_decoded = self.recognizer.greedy_ctc_decode(cut_logits);
+                    let decoded_text = self.recognizer.decode_tokens(&ctc_decoded);
                     let text = decoded_text.trim();
 
                     let has_new_text = !text.is_empty();
@@ -110,12 +113,21 @@ impl IpaPipeline {
 
                     if has_new_text {
                         println!("Text: {}", self.text_buffer);
+                        self.on_buffer_update();
                     }
 
                     next_finished_task_id += 1;
                 }
             }
         });
+    }
+
+    pub fn on_buffer_update(&mut self) {
+        let (words, consumed) = self.dictionary.greedy_search(&self.text_buffer);
+        for word in words {
+            println!("Detected word {word}");
+        }
+        self.text_buffer = self.text_buffer[consumed..].to_owned();
     }
 }
 
