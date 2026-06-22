@@ -6,3 +6,6 @@
 
 /model/*.onnx
 /target
+
+# IDE files
+/.vscode
