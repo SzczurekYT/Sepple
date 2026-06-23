@@ -8,6 +8,7 @@ use std::{
 };
 
 use burn::backend::Flex;
+use unicode_segmentation::UnicodeSegmentation;
 
 use crate::{
     dictionary::Dictionary,
@@ -127,7 +128,19 @@ impl IpaPipeline {
         for word in words {
             println!("Detected word {word}");
         }
-        self.text_buffer = self.text_buffer[consumed..].to_owned();
+        if consumed != 0 {
+            self.text_buffer = self.text_buffer[consumed..].to_owned();
+        } else {
+            let limit = self.dictionary.longest_considered_word_len;
+            let mut iterator = self.text_buffer.grapheme_indices(true).rev();
+            let first_kept_grapheme = iterator.nth(limit);
+            let grapheme_over_limit = iterator.next();
+            if grapheme_over_limit.is_some() {
+                let (index, _) = first_kept_grapheme
+                    .expect("some, because previous element in iterator was some");
+                self.text_buffer = self.text_buffer[index..].to_owned();
+            }
+        }
     }
 }
 

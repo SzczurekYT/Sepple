@@ -1,4 +1,7 @@
-use std::{cmp::min, fs};
+use std::{
+    cmp::{max, min},
+    fs,
+};
 
 use strsim::generic_levenshtein;
 use unicode_segmentation::{Graphemes, UnicodeSegmentation};
@@ -7,7 +10,8 @@ const DICTIONARY_PATH: &str = "dictionary.json";
 
 pub struct Dictionary {
     words: Vec<(String, usize)>,
-    shortest_word_len: usize,
+    pub shortest_word_len: usize,
+    pub longest_considered_word_len: usize,
 }
 
 impl Dictionary {
@@ -16,17 +20,22 @@ impl Dictionary {
             .unwrap_or_else(|_| panic!("Unable to read {DICTIONARY_PATH}"));
         let words: Vec<String> = serde_json::from_str(&text).unwrap();
         let mut shortest_word_len = usize::MAX;
+        let mut longest_considered_word_len = 0;
         let words: Vec<(String, usize)> = words
             .into_iter()
             .map(|word| {
                 let len = word.graphemes(true).count();
                 shortest_word_len = min(shortest_word_len, len);
+                longest_considered_word_len = max(longest_considered_word_len, len);
                 (word, len)
             })
             .collect();
+        longest_considered_word_len =
+            longest_considered_word_len + max_difference(longest_considered_word_len);
         Dictionary {
             words,
             shortest_word_len,
+            longest_considered_word_len,
         }
     }
 
@@ -98,7 +107,8 @@ fn strings_are_similiar(string: &str, pattern: &str) -> Option<usize> {
 
 const fn max_difference(len: usize) -> usize {
     match len {
-        0..6 => 1,
+        0..4 => 0,
+        4..6 => 1,
         6..9 => 2,
         _ => 3,
     }
