@@ -9,17 +9,20 @@ use unicode_segmentation::UnicodeSegmentation;
 
 use crate::{dictionary::Dictionary, ipapipeline::PipelineValue};
 
+const TIME_DIFFERENCE_CUTOFF_MS: u128 = 300;
+
 pub struct WordDetector {
     text_buffer: String,
     dictionary: Dictionary,
+    last_end_time: u128,
 }
 
 impl WordDetector {
     pub fn init() -> Self {
         Self {
             text_buffer: String::with_capacity(100),
-
             dictionary: Dictionary::load(),
+            last_end_time: u128::MAX,
         }
     }
 
@@ -47,14 +50,19 @@ impl WordDetector {
         data: PipelineValue,
         result_sender: &Sender<String>,
     ) -> ControlFlow<()> {
-        match data {
-            PipelineValue::Break if !self.text_buffer.ends_with(" ") => self.text_buffer.push(' '),
-            PipelineValue::Text(text) => {
-                self.text_buffer.push_str(&text);
-                println!("Text {}", self.text_buffer);
-            }
-            _ => {}
-        };
+        let PipelineValue {
+            text,
+            start_time,
+            end_time,
+        } = data;
+
+        if start_time - self.last_end_time > TIME_DIFFERENCE_CUTOFF_MS {
+            self.text_buffer.clear();
+        }
+        self.last_end_time = end_time;
+
+        self.text_buffer.push_str(&text);
+        println!("Text {}", self.text_buffer);
 
         let (words, consumed) = self.dictionary.greedy_search(&self.text_buffer);
         for word in words {

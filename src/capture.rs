@@ -6,10 +6,18 @@ use std::{
 
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 
-use crate::ipapipeline::{SAMPLE_RATE_F32, SAMPLE_RATE_U32};
+use crate::{
+    ipapipeline::{SAMPLE_RATE_F32, SAMPLE_RATE_U32},
+    util::unix_timestamp_now,
+};
 
-pub fn start_audio_capture(chunk_length: Duration) -> Receiver<Vec<f32>> {
-    let (tx, rx) = mpsc::channel::<Vec<f32>>();
+pub struct CapturedAudio {
+    pub timestamp: u128,
+    pub audio: Vec<f32>,
+}
+
+pub fn start_audio_capture(chunk_length: Duration) -> Receiver<CapturedAudio> {
+    let (tx, rx) = mpsc::channel::<CapturedAudio>();
 
     let mut buffer = Vec::<f32>::new();
 
@@ -30,6 +38,7 @@ pub fn start_audio_capture(chunk_length: Duration) -> Receiver<Vec<f32>> {
         .build_input_stream(
             &config,
             move |data: &[i16], _: &cpal::InputCallbackInfo| {
+                let timestamp = unix_timestamp_now();
                 // Normalize i16 to f32 [-1.0, 1.0]
                 let normalized: Vec<f32> = data
                     .iter()
@@ -40,7 +49,13 @@ pub fn start_audio_capture(chunk_length: Duration) -> Receiver<Vec<f32>> {
 
                 while buffer.len() >= chunk_size {
                     let chunk: Vec<f32> = buffer.drain(..chunk_size).collect();
-                    if tx.send(chunk).is_err() {
+                    if tx
+                        .send(CapturedAudio {
+                            timestamp,
+                            audio: chunk,
+                        })
+                        .is_err()
+                    {
                         break;
                     }
                 }

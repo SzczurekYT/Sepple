@@ -9,13 +9,16 @@ use std::{
 
 use burn::backend::Flex;
 
-use crate::iparecognizer::{IpaRecognizer, z_score_normalize};
+use crate::{
+    capture::CapturedAudio,
+    iparecognizer::{IpaRecognizer, z_score_normalize},
+};
 
 pub const SAMPLE_RATE_U32: u32 = 16_000;
 pub const SAMPLE_RATE_USIZE: usize = 16_000;
 pub const SAMPLE_RATE_F32: f32 = 16_000.0;
 pub const DOWNSAMPLE_RATE_F32: f32 = 320.0;
-pub const TIME_TO_LOGIT_FACTOR: f32 = SAMPLE_RATE_F32 / DOWNSAMPLE_RATE_F32;
+pub const LOGITS_PER_SECOND: f32 = SAMPLE_RATE_F32 / DOWNSAMPLE_RATE_F32;
 
 pub struct IpaPipeline {
     recognizer: Arc<IpaRecognizer<Flex>>,
@@ -35,13 +38,15 @@ impl IpaPipeline {
         }
     }
 
-    pub fn run(&mut self, receiver: Receiver<Vec<f32>>, result_sender: Sender<PipelineValue>) {
+    pub fn run(&mut self, receiver: Receiver<CapturedAudio>, result_sender: Sender<PipelineValue>) {
         let mut values_buffer = Vec::with_capacity(4);
 
         let mut next_task_id: u32 = 0;
         let mut next_finished_task_id: u32 = 0;
 
         let (thread_sender, thread_receiver) = mpsc::channel();
+
+        let padding_token_id = self.recognizer.padding_token_id();
 
         let window_sample_count =
             (SAMPLE_RATE_F32 * self.config.window_size.as_secs_f32()).round() as usize;
@@ -52,7 +57,7 @@ impl IpaPipeline {
 
         thread::scope(|s| {
             'main_loop: loop {
-                let data = match receiver.try_recv() {
+                let CapturedAudio { timestamp, audio } = match receiver.try_recv() {
                     Ok(data) => data,
                     Err(TryRecvError::Disconnected) => {
                         break;
@@ -62,7 +67,7 @@ impl IpaPipeline {
                         continue;
                     }
                 };
-                self.buffer.extend(data);
+                self.buffer.extend(audio);
 
                 while self.buffer.len() > window_sample_count {
                     let buf = &self.buffer[..window_sample_count];
@@ -91,20 +96,31 @@ impl IpaPipeline {
                     let (_, logits) = values_buffer.swap_remove(index);
                     let cut_logits =
                         &logits[stride_logit_count..(logits.len() - stride_logit_count)];
+
+                    let last_letter_index = cut_logits
+                        .iter()
+                        .rev()
+                        .position(|logit| *logit != padding_token_id)
+                        .map(|value| logits.len() - value - 1)
+                        .unwrap_or(0);
+
+                    let end_time = timestamp + logit_count_to_time(last_letter_index).as_millis();
+
                     let ctc_decoded = self.recognizer.greedy_ctc_decode(cut_logits);
-                    let decoded_text = self.recognizer.decode_tokens(&ctc_decoded);
-                    let text = decoded_text.trim();
+                    let text = self.recognizer.decode_tokens(&ctc_decoded);
 
                     let has_new_text = !text.is_empty();
-                    let value = if has_new_text {
-                        PipelineValue::Text(text.to_owned())
-                    } else {
-                        PipelineValue::Break
-                    };
-                    let send_result = result_sender.send(value);
 
-                    if send_result.is_err() {
-                        break 'main_loop;
+                    if has_new_text {
+                        let send_result = result_sender.send(PipelineValue {
+                            text,
+                            start_time: timestamp,
+                            end_time,
+                        });
+
+                        if send_result.is_err() {
+                            break 'main_loop;
+                        }
                     }
 
                     next_finished_task_id += 1;
@@ -120,11 +136,16 @@ pub struct SlidingWindowConfig {
 }
 
 fn time_to_logit_count(time: Duration) -> usize {
-    (TIME_TO_LOGIT_FACTOR * time.as_secs_f32()) as usize
+    (time.as_secs_f32() * LOGITS_PER_SECOND) as usize
+}
+
+fn logit_count_to_time(count: usize) -> Duration {
+    Duration::from_secs_f32(count as f32 / LOGITS_PER_SECOND)
 }
 
 #[derive(Debug, Clone)]
-pub enum PipelineValue {
-    Break,
-    Text(String),
+pub struct PipelineValue {
+    pub text: String,
+    pub start_time: u128,
+    pub end_time: u128,
 }

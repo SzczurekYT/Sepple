@@ -60,6 +60,24 @@ impl<B: Backend + BackendTypes> IpaRecognizer<B> {
         tokens
     }
 
+    /// Returns a list of logits, and a list of indexes of each logit
+    pub fn greedy_ctc_decode_with_indexes(&self, ids: &[i32]) -> (Vec<i32>, Vec<usize>) {
+        let mut tokens = Vec::new();
+        let mut indexes = Vec::new();
+        let mut prev: Option<i32> = None;
+
+        for (index, &id) in ids.iter().enumerate() {
+            if id == self.padding_token_id {
+                prev = None;
+            } else if prev != Some(id) {
+                tokens.push(id);
+                indexes.push(index);
+                prev = Some(id);
+            }
+        }
+        (tokens, indexes)
+    }
+
     pub fn decode_tokens(&self, tokens: &[i32]) -> String {
         tokens
             .iter()
@@ -71,6 +89,10 @@ impl<B: Backend + BackendTypes> IpaRecognizer<B> {
             })
             .collect::<Vec<_>>()
             .join("")
+    }
+
+    pub fn padding_token_id(&self) -> i32 {
+        self.padding_token_id
     }
 }
 

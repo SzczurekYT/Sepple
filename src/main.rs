@@ -2,6 +2,7 @@ pub mod capture;
 pub mod dictionary;
 pub mod ipapipeline;
 pub mod iparecognizer;
+pub mod util;
 pub mod word_detector;
 
 use std::{
@@ -18,8 +19,10 @@ use burn::backend::Flex;
 use hound::WavReader;
 
 use crate::{
+    capture::CapturedAudio,
     ipapipeline::{IpaPipeline, PipelineValue, SAMPLE_RATE_U32, SlidingWindowConfig},
     iparecognizer::IpaRecognizer,
+    util::unix_timestamp_now,
     word_detector::WordDetector,
 };
 
@@ -53,8 +56,13 @@ fn run_single(input: &[f32]) {
 
 fn run_pipeline(input: Option<Vec<f32>>) {
     let audio_rx = if let Some(input) = input {
-        let (tx, rx) = mpsc::channel::<Vec<f32>>();
-        tx.send(input).unwrap();
+        let (tx, rx) = mpsc::channel();
+        let now = unix_timestamp_now();
+        tx.send(CapturedAudio {
+            audio: input,
+            timestamp: now,
+        })
+        .unwrap();
         rx
     } else {
         capture::start_audio_capture(Duration::from_secs(1))
