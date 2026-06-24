@@ -1,19 +1,15 @@
 use std::{
     sync::{
         Arc,
-        mpsc::{self, Receiver, TryRecvError},
+        mpsc::{self, Receiver, Sender, TryRecvError},
     },
     thread,
     time::Duration,
 };
 
 use burn::backend::Flex;
-use unicode_segmentation::UnicodeSegmentation;
 
-use crate::{
-    dictionary::Dictionary,
-    iparecognizer::{IpaRecognizer, z_score_normalize},
-};
+use crate::iparecognizer::{IpaRecognizer, z_score_normalize};
 
 pub const SAMPLE_RATE_U32: u32 = 16_000;
 pub const SAMPLE_RATE_USIZE: usize = 16_000;
@@ -25,8 +21,6 @@ pub struct IpaPipeline {
     recognizer: Arc<IpaRecognizer<Flex>>,
     config: SlidingWindowConfig,
     buffer: Vec<f32>,
-    text_buffer: String,
-    dictionary: Dictionary,
 }
 
 impl IpaPipeline {
@@ -34,17 +28,14 @@ impl IpaPipeline {
         let recognizer = IpaRecognizer::init().into();
         Self {
             recognizer,
-
             buffer: Vec::with_capacity(
                 (config.window_size.as_secs() + 1) as usize * SAMPLE_RATE_USIZE,
             ),
-            text_buffer: String::with_capacity(100),
             config,
-            dictionary: Dictionary::load(),
         }
     }
 
-    pub fn run(&mut self, receiver: Receiver<Vec<f32>>) {
+    pub fn run(&mut self, receiver: Receiver<Vec<f32>>, result_sender: Sender<PipelineValue>) {
         let mut values_buffer = Vec::with_capacity(4);
 
         let mut next_task_id: u32 = 0;
@@ -60,11 +51,10 @@ impl IpaPipeline {
         let processed_chunk_sample_count = window_sample_count - 2 * stride_sample_count;
 
         thread::scope(|s| {
-            loop {
+            'main_loop: loop {
                 let data = match receiver.try_recv() {
                     Ok(data) => data,
                     Err(TryRecvError::Disconnected) => {
-                        println!("Pipeline finished, text in buffer: {}", self.text_buffer);
                         break;
                     }
                     Err(TryRecvError::Empty) => {
@@ -106,41 +96,21 @@ impl IpaPipeline {
                     let text = decoded_text.trim();
 
                     let has_new_text = !text.is_empty();
-                    if has_new_text {
-                        self.text_buffer += text;
-                    } else if !self.text_buffer.ends_with(" ") {
-                        self.text_buffer.push(' ');
-                    }
+                    let value = if has_new_text {
+                        PipelineValue::Text(text.to_owned())
+                    } else {
+                        PipelineValue::Break
+                    };
+                    let send_result = result_sender.send(value);
 
-                    if has_new_text {
-                        println!("Text: {}", self.text_buffer);
-                        self.on_buffer_update();
+                    if send_result.is_err() {
+                        break 'main_loop;
                     }
 
                     next_finished_task_id += 1;
                 }
             }
         });
-    }
-
-    pub fn on_buffer_update(&mut self) {
-        let (words, consumed) = self.dictionary.greedy_search(&self.text_buffer);
-        for word in words {
-            println!("Detected word {word}");
-        }
-        if consumed != 0 {
-            self.text_buffer = self.text_buffer[consumed..].to_owned();
-        } else {
-            let limit = self.dictionary.longest_considered_word_len;
-            let mut iterator = self.text_buffer.grapheme_indices(true).rev();
-            let first_kept_grapheme = iterator.nth(limit);
-            let grapheme_over_limit = iterator.next();
-            if grapheme_over_limit.is_some() {
-                let (index, _) = first_kept_grapheme
-                    .expect("some, because previous element in iterator was some");
-                self.text_buffer = self.text_buffer[index..].to_owned();
-            }
-        }
     }
 }
 
@@ -151,4 +121,10 @@ pub struct SlidingWindowConfig {
 
 fn time_to_logit_count(time: Duration) -> usize {
     (TIME_TO_LOGIT_FACTOR * time.as_secs_f32()) as usize
+}
+
+#[derive(Debug, Clone)]
+pub enum PipelineValue {
+    Break,
+    Text(String),
 }

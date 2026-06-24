@@ -2,15 +2,25 @@ pub mod capture;
 pub mod dictionary;
 pub mod ipapipeline;
 pub mod iparecognizer;
+pub mod word_detector;
 
-use std::{collections::HashMap, env::args, fs, path::Path, sync::mpsc, time::Duration};
+use std::{
+    collections::HashMap,
+    env::args,
+    fs,
+    path::Path,
+    sync::mpsc,
+    thread::{self},
+    time::Duration,
+};
 
 use burn::backend::Flex;
 use hound::WavReader;
 
 use crate::{
-    ipapipeline::{IpaPipeline, SAMPLE_RATE_U32, SlidingWindowConfig},
+    ipapipeline::{IpaPipeline, PipelineValue, SAMPLE_RATE_U32, SlidingWindowConfig},
     iparecognizer::IpaRecognizer,
+    word_detector::WordDetector,
 };
 
 fn main() {
@@ -56,7 +66,18 @@ fn run_pipeline(input: Option<Vec<f32>>) {
     };
     let mut pipeline = IpaPipeline::init(sliding_window_config);
     println!("Load done, transcribing:");
-    pipeline.run(audio_rx);
+    let (pipeline_sender, pipeline_receiver) = mpsc::channel::<PipelineValue>();
+    thread::spawn(move || {
+        pipeline.run(audio_rx, pipeline_sender);
+    });
+    let mut word_detector = WordDetector::init();
+    let (word_sender, word_receiver) = mpsc::channel();
+    thread::spawn(move || {
+        word_detector.run(pipeline_receiver, word_sender);
+    });
+    while let Ok(word) = word_receiver.recv() {
+        println!("Detected word: {word}");
+    }
 }
 
 pub fn load_vocab(path: &str) -> HashMap<usize, String> {
