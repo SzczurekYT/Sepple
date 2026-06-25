@@ -75,19 +75,22 @@ impl Dictionary {
         let mut lowest_distance = usize::MAX;
         let mut result = None;
         for (dict_word, len) in &self.words {
-            let (mut last_index, grapheme) = input
-                .grapheme_indices(true)
-                .take(*len)
-                .last()
-                .expect("at least one grapheme");
-            last_index += grapheme.len();
-            let fragment = &input[..last_index];
-            let Some(distance) = strings_are_similiar(fragment, dict_word) else {
-                continue;
-            };
-            if distance < lowest_distance {
-                lowest_distance = distance;
-                result = Some((fragment, dict_word.as_ref()));
+            let max_diff = max_difference(*len);
+            for i in 0..=max_diff {
+                let (mut last_index, grapheme) = input
+                    .grapheme_indices(true)
+                    .take(*len + i)
+                    .last()
+                    .expect("at least one grapheme");
+                last_index += grapheme.len();
+                let fragment = &input[..last_index];
+                let Some(distance) = strings_are_similiar(fragment, dict_word) else {
+                    continue;
+                };
+                if distance < lowest_distance {
+                    lowest_distance = distance;
+                    result = Some((fragment, dict_word.as_ref()));
+                }
             }
         }
         result
@@ -129,18 +132,44 @@ impl<'b> IntoIterator for &GraphemesStringIterator<'b> {
 mod test {
     use crate::dictionary::Dictionary;
 
-    const SEQUENCE: &str = "prizimfɛrakɛlfidapriziɲfɛrakɛjfidariziɲfɛrakɛjfidapɾizinfɛraːkaifiːdaːpriːzɨjimfɛraːkɛifiːdɛl";
-    const REMAINDER: &str = "ːkɛifiːdɛl";
-    const SEQUENCE_SPLIT: &[&str] = &[
-        "prizim", "fɛra", "kɛjfida", //
-        "prizim", "fɛra", "kɛjfida", //
-        "fɛra", "kɛjfida", //
-        "prizim", "fɛra", //
-        "fɛra",
-    ];
-
     #[test]
     fn test_greedy_split_prizim_fera_kejfida() {
+        const SEQUENCE: &str = "prizimfɛrakɛlfidapriziɲfɛrakɛjfidariziɲfɛrakɛjfidapɾizinfɛraːkaifiːdaːpriːzɨjimfɛraːkɛifiːdɛl";
+        const REMAINDER: &str = "ːkɛifiːdɛl";
+        const SEQUENCE_SPLIT: &[&str] = &[
+            "prizim", "fɛra", "kɛjfida", //
+            "prizim", "fɛra", "kɛjfida", //
+            "fɛra", "kɛjfida", //
+            "prizim", "fɛra", //
+            "fɛra",
+        ];
+
+        let dict = Dictionary::load();
+        let (words, consumed) = dict.greedy_search(SEQUENCE);
+
+        assert_eq!(&words, SEQUENCE_SPLIT);
+        assert_eq!(&SEQUENCE[consumed..], REMAINDER);
+    }
+
+    #[test]
+    fn test_greedy_split_prizim() {
+        const SEQUENCE: &str = "pɾiːzim";
+        const REMAINDER: &str = "";
+        const SEQUENCE_SPLIT: &[&str] = &["prizim"];
+
+        let dict = Dictionary::load();
+        let (words, consumed) = dict.greedy_search(SEQUENCE);
+
+        assert_eq!(&words, SEQUENCE_SPLIT);
+        assert_eq!(&SEQUENCE[consumed..], REMAINDER);
+    }
+
+    #[test]
+    fn test_greedy_split_no_match() {
+        const SEQUENCE: &str = "Y]+g4Ty}F({7H!8nrn2(1ZH[Y)A0SSg4}0tXy!)013Vz}6kjZW(Fg{bpGY+D:Z1/X&5UmJ4L+X2=r8ji[a)h,i7[n7Ny9";
+        const REMAINDER: &str = SEQUENCE;
+        const SEQUENCE_SPLIT: &[&str] = &[];
+
         let dict = Dictionary::load();
         let (words, consumed) = dict.greedy_search(SEQUENCE);
 
