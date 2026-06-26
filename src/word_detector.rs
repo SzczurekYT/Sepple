@@ -7,7 +7,7 @@ use std::{
 
 use unicode_segmentation::UnicodeSegmentation;
 
-use crate::{dictionary::Dictionary, ipapipeline::PipelineValue};
+use crate::{debug_enabled, dictionary::Dictionary, ipapipeline::PipelineValue};
 
 const TIME_DIFFERENCE_CUTOFF_MS: u128 = 300;
 
@@ -62,7 +62,9 @@ impl WordDetector {
         self.last_end_time = end_time;
 
         self.text_buffer.push_str(&text);
-        println!("Text {}", self.text_buffer);
+        if debug_enabled() {
+            println!("Text {}", self.text_buffer);
+        }
 
         let (words, consumed) = self.dictionary.greedy_search(&self.text_buffer);
         for word in words {

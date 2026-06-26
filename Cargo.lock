@@ -6165,6 +6165,7 @@ version = "0.1.0"
 dependencies = [
  "burn",
  "burn-store",
+ "clap",
  "cpal",
  "hound",
  "multipa-model",

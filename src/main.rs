@@ -7,15 +7,18 @@ pub mod word_detector;
 
 use std::{
     collections::HashMap,
-    env::args,
     fs,
-    path::Path,
-    sync::mpsc,
+    path::{Path, PathBuf},
+    sync::{
+        atomic::{AtomicU8, Ordering},
+        mpsc,
+    },
     thread::{self},
-    time::Duration,
+    time::{Duration, Instant},
 };
 
 use burn::backend::Flex;
+use clap::{Parser, Subcommand};
 use hound::WavReader;
 
 use crate::{
@@ -26,23 +29,42 @@ use crate::{
     word_detector::WordDetector,
 };
 
-fn main() {
-    let mode = args().nth(1).map(|s| s.to_lowercase());
-    let input = args().nth(2).map(read_wav_to_f32);
+pub(crate) static DEBUG: AtomicU8 = AtomicU8::new(0);
 
-    match mode.as_deref() {
-        Some("single") => {
-            run_single(&input.expect("file path for single mode"));
-        }
-        Some("pipeline") => {
-            run_pipeline(input);
-        }
-        Some(mode) => {
-            println!("Invalid mode {mode}");
-        }
-        None => {
-            println!("Please select a mode");
-        }
+#[derive(Parser)]
+#[command(version, about, long_about = None)]
+struct Cli {
+    /// Turn debugging information on
+    #[arg(short, long, action = clap::ArgAction::Count)]
+    verbose: u8,
+
+    #[command(subcommand)]
+    command: Command,
+}
+
+#[derive(Subcommand)]
+enum Command {
+    /// Feeds a file into the ipa detection model and prints result
+    File {
+        #[arg(short, long, value_name = "FILE")]
+        input: PathBuf,
+    },
+    /// Runs the IPA pipeline
+    Pipeline {
+        /// loads audio from file instead of capturing live microphone input
+        #[arg(short, long, value_name = "FILE")]
+        input: Option<PathBuf>,
+    },
+}
+
+fn main() {
+    let cli = Cli::parse();
+
+    DEBUG.store(cli.verbose, Ordering::SeqCst);
+
+    match cli.command {
+        Command::File { input } => run_single(&read_wav_to_f32(input)),
+        Command::Pipeline { input } => run_pipeline(input.map(read_wav_to_f32)),
     }
 }
 
@@ -67,13 +89,17 @@ fn run_pipeline(input: Option<Vec<f32>>) {
     } else {
         capture::start_audio_capture(Duration::from_secs(1))
     };
+    let load_start = Instant::now();
     println!("Loading model");
     let sliding_window_config = SlidingWindowConfig {
         window_size: Duration::from_secs(2),
         stride: Duration::from_millis(500),
     };
     let mut pipeline = IpaPipeline::init(sliding_window_config);
-    println!("Load done, transcribing:");
+    println!(
+        "Load done (took: {:.2?}), transcribing:",
+        load_start.elapsed()
+    );
     let (pipeline_sender, pipeline_receiver) = mpsc::channel::<PipelineValue>();
     thread::spawn(move || {
         pipeline.run(audio_rx, pipeline_sender);
@@ -111,4 +137,8 @@ pub fn read_wav_to_f32<P: AsRef<Path>>(path: P) -> Vec<f32> {
         .samples::<i16>()
         .map(|s| s.unwrap() as f32 / (i16::MAX as f32 + 1.0))
         .collect()
+}
+
+pub fn debug_enabled() -> bool {
+    DEBUG.load(Ordering::Relaxed) > 0
 }
