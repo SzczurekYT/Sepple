@@ -11,13 +11,13 @@ use crate::{
     util::unix_timestamp_now,
 };
 
-pub struct CapturedAudio {
+pub struct AudioChunk {
     pub timestamp: u128,
     pub audio: Vec<f32>,
 }
 
-pub fn start_audio_capture(chunk_length: Duration) -> Receiver<CapturedAudio> {
-    let (tx, rx) = mpsc::channel::<CapturedAudio>();
+pub fn start_audio_capture(chunk_length: Duration) -> Receiver<AudioChunk> {
+    let (tx, rx) = mpsc::channel::<AudioChunk>();
 
     let mut buffer = Vec::<f32>::new();
 
@@ -50,7 +50,7 @@ pub fn start_audio_capture(chunk_length: Duration) -> Receiver<CapturedAudio> {
                 while buffer.len() >= chunk_size {
                     let chunk: Vec<f32> = buffer.drain(..chunk_size).collect();
                     if tx
-                        .send(CapturedAudio {
+                        .send(AudioChunk {
                             timestamp,
                             audio: chunk,
                         })

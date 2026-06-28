@@ -22,7 +22,7 @@ use clap::{Parser, Subcommand};
 use hound::WavReader;
 
 use crate::{
-    capture::CapturedAudio,
+    capture::AudioChunk,
     ipapipeline::{IpaPipeline, PipelineValue, SAMPLE_RATE_U32, SlidingWindowConfig},
     iparecognizer::IpaRecognizer,
     util::unix_timestamp_now,
@@ -80,7 +80,7 @@ fn run_pipeline(input: Option<Vec<f32>>) {
     let audio_rx = if let Some(input) = input {
         let (tx, rx) = mpsc::channel();
         let now = unix_timestamp_now();
-        tx.send(CapturedAudio {
+        tx.send(AudioChunk {
             audio: input,
             timestamp: now,
         })

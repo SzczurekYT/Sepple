@@ -10,7 +10,7 @@ use std::{
 use burn::backend::Flex;
 
 use crate::{
-    capture::CapturedAudio,
+    capture::AudioChunk,
     iparecognizer::{IpaRecognizer, z_score_normalize},
 };
 
@@ -38,7 +38,7 @@ impl IpaPipeline {
         }
     }
 
-    pub fn run(&mut self, receiver: Receiver<CapturedAudio>, result_sender: Sender<PipelineValue>) {
+    pub fn run(&mut self, receiver: Receiver<AudioChunk>, result_sender: Sender<PipelineValue>) {
         let mut values_buffer = Vec::with_capacity(4);
 
         let mut next_task_id: u32 = 0;
@@ -57,7 +57,7 @@ impl IpaPipeline {
 
         thread::scope(|s| {
             'main_loop: loop {
-                let CapturedAudio { timestamp, audio } = match receiver.try_recv() {
+                let AudioChunk { timestamp, audio } = match receiver.try_recv() {
                     Ok(data) => data,
                     Err(TryRecvError::Disconnected) => {
                         break;
