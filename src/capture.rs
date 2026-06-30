@@ -38,7 +38,10 @@ pub fn start_audio_capture(chunk_length: Duration) -> Receiver<AudioChunk> {
         .build_input_stream(
             &config,
             move |data: &[i16], _: &cpal::InputCallbackInfo| {
-                let timestamp = unix_timestamp_now();
+                let chunk_lenght_ms: u128 =
+                    ((data.len() as f32 / SAMPLE_RATE_F32) / 1000.0) as u128;
+                let timestamp = unix_timestamp_now() - chunk_lenght_ms;
+
                 // Normalize i16 to f32 [-1.0, 1.0]
                 let normalized: Vec<f32> = data
                     .iter()
