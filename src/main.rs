@@ -3,6 +3,8 @@ pub mod dictionary;
 pub mod ipapipeline;
 pub mod iparecognizer;
 pub mod util;
+pub mod vad;
+pub mod vad_filter;
 pub mod word_detector;
 
 use std::{
@@ -17,7 +19,7 @@ use std::{
     time::{Duration, Instant},
 };
 
-use burn::backend::Flex;
+use burn::backend::{Flex, flex::FlexDevice};
 use clap::{Parser, Subcommand};
 use hound::WavReader;
 
@@ -26,10 +28,13 @@ use crate::{
     ipapipeline::{IpaPipeline, PipelineValue, SAMPLE_RATE_U32, SlidingWindowConfig},
     iparecognizer::IpaRecognizer,
     util::unix_timestamp_now,
+    vad_filter::VadFilter,
     word_detector::WordDetector,
 };
 
 pub(crate) static DEBUG: AtomicU8 = AtomicU8::new(0);
+pub type SeppleBackend = Flex;
+// pub type SeppleDevice = FlexDevice;
 
 #[derive(Parser)]
 #[command(version, about, long_about = None)]
@@ -47,13 +52,13 @@ enum Command {
     /// Feeds a file into the ipa detection model and prints result
     File {
         #[arg(short, long, value_name = "FILE")]
-        input: PathBuf,
+        file: PathBuf,
     },
     /// Runs the IPA pipeline
     Pipeline {
         /// loads audio from file instead of capturing live microphone input
         #[arg(short, long, value_name = "FILE")]
-        input: Option<PathBuf>,
+        file: Option<PathBuf>,
     },
 }
 
@@ -63,8 +68,8 @@ fn main() {
     DEBUG.store(cli.verbose, Ordering::SeqCst);
 
     match cli.command {
-        Command::File { input } => run_single(&read_wav_to_f32(input)),
-        Command::Pipeline { input } => run_pipeline(input.map(read_wav_to_f32)),
+        Command::File { file } => run_single(&read_wav_to_f32(file)),
+        Command::Pipeline { file } => run_pipeline(file.map(read_wav_to_f32)),
     }
 }
 
@@ -87,7 +92,7 @@ fn run_pipeline(input: Option<Vec<f32>>) {
         .unwrap();
         rx
     } else {
-        capture::start_audio_capture(Duration::from_secs(1))
+        capture::start_audio_capture(Duration::from_millis(32))
     };
     let load_start = Instant::now();
     println!("Loading model");
@@ -96,13 +101,18 @@ fn run_pipeline(input: Option<Vec<f32>>) {
         stride: Duration::from_millis(500),
     };
     let mut pipeline = IpaPipeline::init(sliding_window_config);
+    let mut vad = VadFilter::init();
     println!(
         "Load done (took: {:.2?}), transcribing:",
         load_start.elapsed()
     );
+    let (vad_sender, vad_receiver) = mpsc::channel::<AudioChunk>();
+    thread::spawn(move || {
+        vad.run(audio_rx, vad_sender);
+    });
     let (pipeline_sender, pipeline_receiver) = mpsc::channel::<PipelineValue>();
     thread::spawn(move || {
-        pipeline.run(audio_rx, pipeline_sender);
+        pipeline.run(vad_receiver, pipeline_sender);
     });
     let mut word_detector = WordDetector::init();
     let (word_sender, word_receiver) = mpsc::channel();
@@ -110,7 +120,7 @@ fn run_pipeline(input: Option<Vec<f32>>) {
         word_detector.run(pipeline_receiver, word_sender);
     });
     while let Ok(word) = word_receiver.recv() {
-        println!("Detected word: {word}");
+        // println!("Detected word: {word}");
     }
 }
 

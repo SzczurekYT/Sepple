@@ -7,9 +7,8 @@ use std::{
     time::Duration,
 };
 
-use burn::backend::Flex;
-
 use crate::{
+    SeppleBackend,
     capture::AudioChunk,
     iparecognizer::{IpaRecognizer, z_score_normalize},
 };
@@ -21,7 +20,7 @@ pub const DOWNSAMPLE_RATE_F32: f32 = 320.0;
 pub const LOGITS_PER_SECOND: f32 = SAMPLE_RATE_F32 / DOWNSAMPLE_RATE_F32;
 
 pub struct IpaPipeline {
-    recognizer: Arc<IpaRecognizer<Flex>>,
+    recognizer: Arc<IpaRecognizer<SeppleBackend>>,
     config: SlidingWindowConfig,
     buffer: Vec<f32>,
 }
