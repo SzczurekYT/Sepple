@@ -1,19 +1,21 @@
 pub mod capture;
+pub mod chunker;
 pub mod dictionary;
-pub mod ipapipeline;
-pub mod iparecognizer;
-pub mod util;
+pub mod ipa_processor;
+pub mod ipa_recognizer;
+pub mod memory_audio_source;
+pub mod pipeline;
+pub mod sliding_window;
+pub mod timestamped_vec;
+pub mod units;
+pub mod value_printer;
 pub mod word_detector;
 
 use std::{
     collections::HashMap,
     fs,
     path::{Path, PathBuf},
-    sync::{
-        atomic::{AtomicU8, Ordering},
-        mpsc,
-    },
-    thread::{self},
+    sync::atomic::{AtomicU8, Ordering},
     time::{Duration, Instant},
 };
 
@@ -22,10 +24,14 @@ use clap::{Parser, Subcommand};
 use hound::WavReader;
 
 use crate::{
-    capture::AudioChunk,
-    ipapipeline::{IpaPipeline, PipelineValue, SAMPLE_RATE_U32, SlidingWindowConfig},
-    iparecognizer::IpaRecognizer,
-    util::unix_timestamp_now,
+    capture::AudioCapture,
+    ipa_processor::IpaProcessor,
+    ipa_recognizer::IpaRecognizer,
+    memory_audio_source::MemoryAudioSource,
+    pipeline::Pipeline,
+    sliding_window::{SlidingWindowChunker, SlidingWindowConfig},
+    units::SAMPLE_RATE_U32,
+    value_printer::ValuePrinter,
     word_detector::WordDetector,
 };
 
@@ -77,41 +83,32 @@ fn run_single(input: &[f32]) {
 }
 
 fn run_pipeline(input: Option<Vec<f32>>) {
-    let audio_rx = if let Some(input) = input {
-        let (tx, rx) = mpsc::channel();
-        let now = unix_timestamp_now();
-        tx.send(AudioChunk {
-            audio: input,
-            timestamp: now,
-        })
-        .unwrap();
-        rx
-    } else {
-        capture::start_audio_capture(Duration::from_secs(1))
-    };
     let load_start = Instant::now();
     println!("Loading model");
     let sliding_window_config = SlidingWindowConfig {
         window_size: Duration::from_secs(2),
-        stride: Duration::from_millis(500),
+        cut_left: Duration::from_millis(500),
+        cut_right: Duration::from_millis(500),
     };
-    let mut pipeline = IpaPipeline::init(sliding_window_config);
+    let chunker = SlidingWindowChunker::new(&sliding_window_config);
+    let ipa_processor = IpaProcessor::init(sliding_window_config);
+    let word_detector = WordDetector::init();
     println!(
         "Load done (took: {:.2?}), transcribing:",
         load_start.elapsed()
     );
-    let (pipeline_sender, pipeline_receiver) = mpsc::channel::<PipelineValue>();
-    thread::spawn(move || {
-        pipeline.run(audio_rx, pipeline_sender);
-    });
-    let mut word_detector = WordDetector::init();
-    let (word_sender, word_receiver) = mpsc::channel();
-    thread::spawn(move || {
-        word_detector.run(pipeline_receiver, word_sender);
-    });
-    while let Ok(word) = word_receiver.recv() {
-        println!("Detected word: {word}");
-    }
+
+    let pipeline = if let Some(input) = input {
+        Pipeline::new(MemoryAudioSource::new(input))
+    } else {
+        Pipeline::new(AudioCapture)
+    };
+
+    pipeline
+        .then(chunker)
+        .then(ipa_processor)
+        .then(word_detector)
+        .finish_and_run(ValuePrinter::new());
 }
 
 pub fn load_vocab(path: &str) -> HashMap<usize, String> {

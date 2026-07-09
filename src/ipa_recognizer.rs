@@ -26,7 +26,7 @@ impl<B: Backend + BackendTypes> IpaRecognizer<B> {
     }
 
     pub fn recognize(&self, input: &[f32]) -> String {
-        let normalized = z_score_normalize(input);
+        let normalized = z_score_normalize(input.iter().copied());
         let result = self.process(&normalized);
         let result = self.greedy_ctc_decode(&result);
         self.decode_tokens(&result)
@@ -122,18 +122,20 @@ where
     Tensor::<B, 1>::from_floats(samples, device).unsqueeze_dim(0)
 }
 
-pub fn z_score_normalize(input: &[f32]) -> Vec<f32> {
+pub fn z_score_normalize<I>(input: I) -> Vec<f32>
+where
+    I: Iterator<Item = f32> + ExactSizeIterator + Clone,
+{
     const EPSILON: f32 = 1e-9;
     let len = input.len() as f32;
-    let mean = input.iter().sum::<f32>() / len;
+    let mean = input.clone().sum::<f32>() / len;
     let variance: f32 = input
-        .iter()
+        .clone()
         .map(|value| (value - mean).powi(2))
         .sum::<f32>()
         / len;
     let std_deviation = variance.sqrt();
     input
-        .iter()
         .map(|value| (value - mean) / (std_deviation + EPSILON))
         .collect()
 }

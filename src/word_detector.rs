@@ -1,20 +1,21 @@
-use std::{
-    ops::ControlFlow,
-    sync::mpsc::{Receiver, Sender, TryRecvError},
-    thread,
-    time::Duration,
-};
+use std::time::Duration;
 
+use tokio::sync::mpsc::{Sender, error::SendError};
 use unicode_segmentation::UnicodeSegmentation;
 
-use crate::{debug_enabled, dictionary::Dictionary, ipapipeline::PipelineValue};
+use crate::{
+    debug_enabled,
+    dictionary::Dictionary,
+    ipa_processor::TimestampedText,
+    pipeline::{PipelineConsumer, PipelineProcessor, PipelineProducer},
+};
 
-const TIME_DIFFERENCE_CUTOFF_MS: u128 = 300;
+const TIME_DIFFERENCE_CUTOFF: Duration = Duration::from_millis(300);
 
 pub struct WordDetector {
     text_buffer: String,
     dictionary: Dictionary,
-    last_end_time: u128,
+    last_end_time: Duration,
 }
 
 impl WordDetector {
@@ -22,41 +23,46 @@ impl WordDetector {
         Self {
             text_buffer: String::with_capacity(100),
             dictionary: Dictionary::load(),
-            last_end_time: u128::MAX,
+            last_end_time: Duration::ZERO,
         }
     }
+}
 
-    pub fn run(&mut self, receiver: Receiver<PipelineValue>, result_sender: Sender<String>) {
-        loop {
-            let data = match receiver.try_recv() {
-                Ok(data) => data,
-                Err(TryRecvError::Disconnected) => {
-                    break;
-                }
-                Err(TryRecvError::Empty) => {
-                    thread::sleep(Duration::from_millis(500));
-                    continue;
-                }
-            };
-            let result = self.on_new_data(data, &result_sender);
-            if result.is_break() {
-                break;
-            }
-        }
+impl PipelineConsumer for WordDetector {
+    type Input = TimestampedText;
+
+    fn input_size(&self) -> Option<usize> {
+        None
+    }
+}
+
+impl PipelineProducer for WordDetector {
+    type Output = String;
+
+    fn output_size(&self) -> Option<usize> {
+        None
+    }
+}
+
+impl PipelineProcessor for WordDetector {
+    fn name() -> &'static str {
+        "WordDetector"
     }
 
-    pub fn on_new_data(
+    async fn process_value(
         &mut self,
-        data: PipelineValue,
-        result_sender: &Sender<String>,
-    ) -> ControlFlow<()> {
-        let PipelineValue {
+        value: Self::Input,
+        sender: &Sender<std::string::String>,
+    ) -> Result<(), SendError<Self::Output>> {
+        let TimestampedText {
             text,
             start_time,
             end_time,
-        } = data;
+        } = value;
 
-        if start_time - self.last_end_time > TIME_DIFFERENCE_CUTOFF_MS {
+        if start_time > self.last_end_time
+            && start_time - self.last_end_time > TIME_DIFFERENCE_CUTOFF
+        {
             self.text_buffer.clear();
         }
         self.last_end_time = end_time;
@@ -68,10 +74,7 @@ impl WordDetector {
 
         let (words, consumed) = self.dictionary.greedy_search(&self.text_buffer);
         for word in words {
-            let send_result = result_sender.send(word.to_owned());
-            if send_result.is_err() {
-                return ControlFlow::Break(());
-            }
+            sender.send(word.to_owned()).await?;
         }
         if consumed != 0 {
             self.text_buffer = self.text_buffer[consumed..].to_owned();
@@ -86,6 +89,7 @@ impl WordDetector {
                 self.text_buffer = self.text_buffer[index..].to_owned();
             }
         }
-        ControlFlow::Continue(())
+
+        Ok(())
     }
 }
