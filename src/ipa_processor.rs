@@ -23,23 +23,23 @@ use crate::{
 
 pub struct IpaProcessor {
     recognizer: Arc<IpaRecognizer<Flex>>,
-    config: SlidingWindowConfig,
+    window_size: usize,
     notification: Arc<Notify>,
     cut_left_logits: usize,
     cut_right_logits: usize,
 }
 
 impl IpaProcessor {
-    pub fn init(config: SlidingWindowConfig) -> Self {
+    pub fn init(config: &SlidingWindowConfig) -> Self {
         let recognizer = IpaRecognizer::init().into();
         let notification = Arc::new(Notify::new());
         notification.notify_one();
         Self {
             recognizer,
             notification,
+            window_size: duration_to_sample_count(&config.window_size),
             cut_left_logits: duration_to_logit_count(config.cut_left),
             cut_right_logits: duration_to_logit_count(config.cut_right),
-            config,
         }
     }
 
@@ -55,7 +55,7 @@ impl PipelineConsumer for IpaProcessor {
     type Input = TimestampedVec<f32>;
 
     fn input_size(&self) -> Option<usize> {
-        Some(duration_to_sample_count(&self.config.window_size))
+        Some(self.window_size)
     }
 }
 

@@ -5,15 +5,19 @@ pub mod ipa_processor;
 pub mod ipa_recognizer;
 pub mod memory_audio_source;
 pub mod pipeline;
+mod silero_vad_scorer;
 pub mod sliding_window;
 pub mod timestamped_vec;
 pub mod units;
+pub mod vad;
+pub mod vad_filter;
 pub mod value_printer;
 pub mod word_detector;
 
 use std::{
     collections::HashMap,
     fs,
+    iter::{self},
     path::{Path, PathBuf},
     sync::atomic::{AtomicU8, Ordering},
     time::{Duration, Instant},
@@ -21,21 +25,26 @@ use std::{
 
 use burn::backend::Flex;
 use clap::{Parser, Subcommand};
-use hound::WavReader;
+use hound::{WavReader, WavWriter};
 
 use crate::{
     capture::AudioCapture,
+    chunker::AudioChunker,
     ipa_processor::IpaProcessor,
     ipa_recognizer::IpaRecognizer,
     memory_audio_source::MemoryAudioSource,
     pipeline::Pipeline,
+    silero_vad_scorer::SileroVadScorer,
     sliding_window::{SlidingWindowChunker, SlidingWindowConfig},
     units::SAMPLE_RATE_U32,
+    vad::Vad,
+    vad_filter::VadFilter,
     value_printer::ValuePrinter,
     word_detector::WordDetector,
 };
 
 pub(crate) static DEBUG: AtomicU8 = AtomicU8::new(0);
+pub type SeppleBackend = Flex;
 
 #[derive(Parser)]
 #[command(version, about, long_about = None)]
@@ -53,13 +62,16 @@ enum Command {
     /// Feeds a file into the ipa detection model and prints result
     File {
         #[arg(short, long, value_name = "FILE")]
-        input: PathBuf,
+        file: PathBuf,
+        /// loads audio from file instead of capturing live microphone input
+        #[arg(long)]
+        silero: bool,
     },
     /// Runs the IPA pipeline
     Pipeline {
         /// loads audio from file instead of capturing live microphone input
         #[arg(short, long, value_name = "FILE")]
-        input: Option<PathBuf>,
+        file: Option<PathBuf>,
     },
 }
 
@@ -69,8 +81,15 @@ fn main() {
     DEBUG.store(cli.verbose, Ordering::SeqCst);
 
     match cli.command {
-        Command::File { input } => run_single(&read_wav_to_f32(input)),
-        Command::Pipeline { input } => run_pipeline(input.map(read_wav_to_f32)),
+        Command::File { file, silero } => {
+            let input = &read_wav_to_f32(file);
+            if !silero {
+                run_single(input);
+            } else {
+                run_single_silero(input);
+            }
+        }
+        Command::Pipeline { file } => run_pipeline(file.map(read_wav_to_f32)),
     }
 }
 
@@ -82,6 +101,20 @@ fn run_single(input: &[f32]) {
     println!("Result: {result}");
 }
 
+fn run_single_silero(input: &[f32]) {
+    println!("Loading model");
+    let mut vad = Vad::<Flex>::init();
+    println!("Load done");
+    let result = vad.process_audio(input);
+
+    println!("Result: {result:.2?}");
+    let audio: Vec<f32> = result
+        .iter()
+        .flat_map(|prob| iter::repeat_n(*prob, vad::CHUNK_SIZE))
+        .collect();
+    save_f32_to_wav(&audio, "speech_probabilities.wav");
+}
+
 fn run_pipeline(input: Option<Vec<f32>>) {
     let load_start = Instant::now();
     println!("Loading model");
@@ -90,8 +123,8 @@ fn run_pipeline(input: Option<Vec<f32>>) {
         cut_left: Duration::from_millis(500),
         cut_right: Duration::from_millis(500),
     };
-    let chunker = SlidingWindowChunker::new(&sliding_window_config);
-    let ipa_processor = IpaProcessor::init(sliding_window_config);
+    let vad_scorer = SileroVadScorer::init();
+    let ipa_processor = IpaProcessor::init(&sliding_window_config);
     let word_detector = WordDetector::init();
     println!(
         "Load done (took: {:.2?}), transcribing:",
@@ -105,7 +138,10 @@ fn run_pipeline(input: Option<Vec<f32>>) {
     };
 
     pipeline
-        .then(chunker)
+        .then(AudioChunker::new(vad::CHUNK_SIZE))
+        .then(vad_scorer)
+        .then(VadFilter::new(0.35, 0.35))
+        .then(SlidingWindowChunker::new(&sliding_window_config))
         .then(ipa_processor)
         .then(word_detector)
         .finish_and_run(ValuePrinter::new());
@@ -134,6 +170,20 @@ pub fn read_wav_to_f32<P: AsRef<Path>>(path: P) -> Vec<f32> {
         .samples::<i16>()
         .map(|s| s.unwrap() as f32 / (i16::MAX as f32 + 1.0))
         .collect()
+}
+
+pub fn save_f32_to_wav<P: AsRef<Path>>(samples: &[f32], path: P) {
+    let spec = hound::WavSpec {
+        channels: 1,
+        sample_rate: SAMPLE_RATE_U32,
+        bits_per_sample: 16,
+        sample_format: hound::SampleFormat::Int,
+    };
+    let mut writer = WavWriter::create(path, spec).expect("Failed to open WAV file");
+    for sample in samples {
+        let amplitude = i16::MAX as f32;
+        writer.write_sample((sample * amplitude) as i16).unwrap();
+    }
 }
 
 pub fn debug_enabled() -> bool {
