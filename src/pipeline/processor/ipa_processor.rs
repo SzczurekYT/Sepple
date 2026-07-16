@@ -16,8 +16,10 @@ use tokio::{
 use crate::{
     debug_enabled,
     ipa_recognizer::{IpaRecognizer, z_score_normalize},
-    pipeline::{PipelineConsumer, PipelineProcessor, PipelineProducer},
-    sliding_window::SlidingWindowConfig,
+    pipeline::{
+        PipelineConsumer, PipelineProcessor, PipelineProducer,
+        processor::sliding_window::SlidingWindowConfig,
+    },
     timestamped_vec::TimestampedVec,
     units::{duration_to_logit_count, duration_to_sample_count, logit_count_to_time},
 };

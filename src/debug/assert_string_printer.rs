@@ -35,9 +35,6 @@ impl PipelineSink for AssertStringPrinter {
 
 impl Drop for AssertStringPrinter {
     fn drop(&mut self) {
-        for (index, reference) in self.reference.iter().enumerate() {
-            let value = &self.values[index];
-            assert_eq!(value, reference, "\nIndex: {index}");
-        }
+        assert_eq!(self.values, self.reference);
     }
 }

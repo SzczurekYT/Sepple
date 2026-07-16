@@ -1,3 +1,7 @@
+pub mod producer;
+pub mod consumer;
+pub mod processor;
+
 use std::thread::{self};
 
 use tokio::{

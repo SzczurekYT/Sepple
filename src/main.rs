@@ -1,19 +1,10 @@
-pub mod assert_string_printer;
-pub mod audio_logger;
-pub mod capture;
-pub mod chunker;
+pub mod debug;
 pub mod dictionary;
-pub mod ipa_processor;
 pub mod ipa_recognizer;
-pub mod memory_audio_source;
 pub mod pipeline;
-mod silero_vad_scorer;
-pub mod sliding_window;
 pub mod timestamped_vec;
 pub mod units;
 pub mod vad;
-pub mod vad_filter;
-pub mod value_printer;
 pub mod word_detector;
 
 use std::{
@@ -30,20 +21,22 @@ use clap::{Parser, Subcommand};
 use hound::{WavReader, WavWriter};
 
 use crate::{
-    assert_string_printer::AssertStringPrinter,
-    audio_logger::AudioLogger,
-    capture::AudioCapture,
-    chunker::AudioChunker,
+    debug::{assert_string_printer::AssertStringPrinter, audio_logger::AudioLogger},
     dictionary::Dictionary,
-    ipa_processor::IpaProcessor,
     ipa_recognizer::IpaRecognizer,
-    memory_audio_source::MemoryAudioSource,
-    pipeline::Pipeline,
-    silero_vad_scorer::SileroVadScorer,
-    sliding_window::{SlidingWindowChunker, SlidingWindowConfig},
+    pipeline::{
+        Pipeline,
+        processor::{
+            chunker::AudioChunker,
+            ipa_processor::IpaProcessor,
+            silero_vad_scorer::SileroVadScorer,
+            sliding_window::{SlidingWindowChunker, SlidingWindowConfig},
+            vad_filter::VadFilter,
+        },
+        producer::{capture::AudioCapture, memory_audio_source::MemoryAudioSource},
+    },
     units::{SAMPLE_RATE_U32, duration_to_sample_count},
     vad::Vad,
-    vad_filter::VadFilter,
     word_detector::WordDetector,
 };
 
