@@ -6,8 +6,10 @@ use unicode_segmentation::UnicodeSegmentation;
 use crate::{
     debug_enabled,
     dictionary::Dictionary,
-    ipa_processor::TimestampedText,
-    pipeline::{PipelineConsumer, PipelineProcessor, PipelineProducer},
+    pipeline::{
+        PipelineConsumer, PipelineProcessor, PipelineProducer,
+        processor::ipa_processor::TimestampedText,
+    },
 };
 
 const TIME_DIFFERENCE_CUTOFF: Duration = Duration::from_millis(300);

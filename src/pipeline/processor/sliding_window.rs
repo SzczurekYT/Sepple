@@ -7,10 +7,11 @@ use std::{
 use tokio::sync::mpsc::{Sender, error::SendError};
 
 use crate::{
-    pipeline::{PipelineConsumer, PipelineProcessor, PipelineProducer},
+    pipeline::{
+        PipelineConsumer, PipelineProcessor, PipelineProducer, processor::vad_filter::VadValue,
+    },
     timestamped_vec::TimestampedVec,
     units::duration_to_sample_count,
-    vad_filter::VadValue,
 };
 
 pub struct SlidingWindowChunker {
