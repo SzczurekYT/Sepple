@@ -69,7 +69,8 @@ impl PipelineProcessor for WordDetector {
 
         self.text_buffer.push_str(&text);
         if debug_enabled() {
-            println!("Text {}", self.text_buffer);
+            println!("WD Received: {text}");
+            println!("WD Buffer: {}", self.text_buffer);
         }
 
         let (words, consumed) = self.dictionary.greedy_search(&self.text_buffer);

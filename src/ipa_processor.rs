@@ -14,6 +14,7 @@ use tokio::{
 };
 
 use crate::{
+    debug_enabled,
     ipa_recognizer::{IpaRecognizer, z_score_normalize},
     pipeline::{PipelineConsumer, PipelineProcessor, PipelineProducer},
     sliding_window::SlidingWindowConfig,
@@ -91,6 +92,12 @@ impl PipelineProcessor for IpaProcessor {
         notif.notified().await;
 
         next_notif.notify_one();
+
+        if debug_enabled() {
+            let uncut_decoded = self.recognizer.greedy_ctc_decode(&logits);
+            let uncut_text = self.recognizer.decode_tokens(&uncut_decoded);
+            println!("IP Uncut: {uncut_text}");
+        }
 
         let cut_logits = &logits[self.cut_left_logits..(logits.len() - self.cut_right_logits)];
 

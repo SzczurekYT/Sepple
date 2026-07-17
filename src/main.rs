@@ -1,3 +1,5 @@
+pub mod assert_string_printer;
+pub mod audio_logger;
 pub mod capture;
 pub mod chunker;
 pub mod dictionary;
@@ -28,18 +30,20 @@ use clap::{Parser, Subcommand};
 use hound::{WavReader, WavWriter};
 
 use crate::{
+    assert_string_printer::AssertStringPrinter,
+    audio_logger::AudioLogger,
     capture::AudioCapture,
     chunker::AudioChunker,
+    dictionary::Dictionary,
     ipa_processor::IpaProcessor,
     ipa_recognizer::IpaRecognizer,
     memory_audio_source::MemoryAudioSource,
     pipeline::Pipeline,
     silero_vad_scorer::SileroVadScorer,
     sliding_window::{SlidingWindowChunker, SlidingWindowConfig},
-    units::SAMPLE_RATE_U32,
+    units::{SAMPLE_RATE_U32, duration_to_sample_count},
     vad::Vad,
     vad_filter::VadFilter,
-    value_printer::ValuePrinter,
     word_detector::WordDetector,
 };
 
@@ -99,6 +103,12 @@ fn run_single(input: &[f32]) {
     println!("Load done");
     let result = recognizer.recognize(input);
     println!("Result: {result}");
+    println!("Words: ");
+    let dict = Dictionary::load();
+    let words = dict.greedy_search(&result).0;
+    for word in words {
+        println!("{word}");
+    }
 }
 
 fn run_single_silero(input: &[f32]) {
@@ -140,11 +150,28 @@ fn run_pipeline(input: Option<Vec<f32>>) {
     pipeline
         .then(AudioChunker::new(vad::CHUNK_SIZE))
         .then(vad_scorer)
-        .then(VadFilter::new(0.35, 0.35))
+        .then(VadFilter::new(0.35, 0.35, 6))
         .then(SlidingWindowChunker::new(&sliding_window_config))
+        .then(AudioLogger::new(
+            Some(duration_to_sample_count(&sliding_window_config.window_size)),
+            "debug",
+        ))
         .then(ipa_processor)
         .then(word_detector)
-        .finish_and_run(ValuePrinter::new());
+        .finish_and_run(AssertStringPrinter::new(vec![
+            "prizim".to_owned(),
+            "fɛra".to_owned(),
+            "kɛjfida".to_owned(),
+            "fɛra".to_owned(),
+            "kɛjfida".to_owned(),
+            "fɛra".to_owned(),
+            "kɛjfida".to_owned(),
+            "prizim".to_owned(),
+            "fɛra".to_owned(),
+            "prizim".to_owned(),
+            "fɛra".to_owned(),
+        ]));
+    // .finish_and_run(ValuePrinter::new());
 }
 
 pub fn load_vocab(path: &str) -> HashMap<usize, String> {
