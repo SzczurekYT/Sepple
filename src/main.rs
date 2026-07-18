@@ -143,7 +143,10 @@ fn run_pipeline(input: Option<Vec<f32>>) {
         .then(AudioChunker::new(vad::CHUNK_SIZE))
         .then(vad_scorer)
         .then(VadFilter::new(0.35, 0.35, 6))
-        .then(SlidingWindowChunker::new(&sliding_window_config))
+        .then(SlidingWindowChunker::new(
+            &sliding_window_config,
+            &Duration::from_millis(40),
+        ))
         .then(AudioLogger::new(
             Some(duration_to_sample_count(&sliding_window_config.window_size)),
             "debug",
