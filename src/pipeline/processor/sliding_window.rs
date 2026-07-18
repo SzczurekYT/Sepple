@@ -16,19 +16,19 @@ use crate::{
 
 pub struct SlidingWindowChunker {
     window_size: usize,
-    cut_left: usize,
+    cut_padding: usize,
     processed_chunk_size: usize,
     buffer: TimestampedVec<f32>,
 }
 
 impl SlidingWindowChunker {
-    pub fn new(config: &SlidingWindowConfig) -> Self {
+    pub fn new(config: &SlidingWindowConfig, cut_padding: &Duration) -> Self {
         let window_size = duration_to_sample_count(&config.window_size);
         let cut_left = duration_to_sample_count(&config.cut_left);
         let cut_right = duration_to_sample_count(&config.cut_right);
         Self {
             window_size,
-            cut_left,
+            cut_padding: cut_left + duration_to_sample_count(cut_padding),
             processed_chunk_size: window_size - cut_left - cut_right,
             buffer: TimestampedVec::default(),
         }
@@ -83,7 +83,7 @@ impl PipelineProcessor for SlidingWindowChunker {
         if self.buffer.is_empty() {
             let timestamp = samples.first().expect("non empty input").1;
             let padding = (0.0, timestamp);
-            self.buffer = repeat_n(padding, self.cut_left).collect();
+            self.buffer = repeat_n(padding, self.cut_padding).collect();
         }
 
         self.buffer.extend(samples);
