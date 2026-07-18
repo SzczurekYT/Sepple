@@ -1,10 +1,10 @@
 use bunsen::{
     burner::tensor::TensorDataIndexView,
-    kits::speech::silero_vad::{SileroVad, SileroVad16x8},
+    kits::speech::silero_vad::{SileroVad, SileroVadCollection, SileroVadContext},
 };
 use burn::{Tensor, prelude::Backend, tensor::backend::BackendTypes};
 
-use crate::{SeppleBackend, ipa_recognizer::samples_to_tensor};
+use crate::{SeppleBackend, ipa_recognizer::samples_to_tensor, units::SAMPLE_RATE_USIZE};
 
 /// For 16khz audio silero works on chunks of 512
 pub const CHUNK_SIZE: usize = 512;
@@ -12,25 +12,29 @@ pub const CHUNK_SIZE: usize = 512;
 pub struct Vad<B: Backend + BackendTypes = SeppleBackend> {
     device: B::Device,
     vad: SileroVad<B>,
-    hidden_state: Tensor<B, 3>,
-    context: Tensor<B, 2>,
+    context: SileroVadContext<B>,
 }
 
 impl<B: Backend> Vad<B> {
     pub fn init() -> Self {
         let device = B::Device::default();
 
-        let vad = SileroVad16x8::load_from_burnpack("./model/silero_vad_op18_ifless.bpk", &device)
-            .expect("Failed to load silero vad")
-            .vad16;
+        let vad = SileroVadCollection::load_from_burnpack_file(
+            "./model/silero_vad_op18_ifless.bpk",
+            &device,
+        )
+        .expect("Failed to load silero vad")
+        .branches
+        .into_iter()
+        .find(|(sample_rate, _)| *sample_rate == SAMPLE_RATE_USIZE)
+        .expect("SileroVad does not support selected sample rate")
+        .1;
 
-        let hidden_state = vad.init_state(1, &device);
-        let context = vad.init_context(1, &device);
+        let context = vad.init_context(1, 64, &device);
 
         Self {
             device,
             vad,
-            hidden_state,
             context,
         }
     }
@@ -45,15 +49,13 @@ impl<B: Backend> Vad<B> {
 
     pub fn process_chunk(&mut self, audio: &[f32]) -> f32 {
         TensorDataIndexView::<f32>::view(&self.forward_chunk(audio).into_data().convert::<f32>())
-            [&[0, 0]]
+            [&[0]]
     }
 
-    fn forward_chunk(&mut self, samples: &[f32]) -> Tensor<B, 2> {
+    fn forward_chunk(&mut self, samples: &[f32]) -> Tensor<B, 1> {
         let tensor = samples_to_tensor(samples, &self.device);
-        let (probabilities, next_state, next_context) =
-            self.vad
-                .forward(tensor, self.hidden_state.clone(), self.context.clone());
-        self.hidden_state = next_state;
+        let (probabilities, next_context) = self.vad.context_forward(tensor, self.context.clone());
+
         self.context = next_context;
         probabilities
     }
