@@ -21,7 +21,7 @@ use hound::{WavReader, WavWriter};
 
 use crate::{
     debug::{assert_string_printer::AssertStringPrinter, audio_logger::AudioLogger},
-    dictionary::Dictionary,
+    dictionary::{DEFAULT_CONFUSION_DISTANCE_THRESHOLD, Dictionary},
     ipa_recognizer::IpaRecognizer,
     pipeline::{
         Pipeline,
@@ -96,7 +96,7 @@ fn run_single(input: &[f32]) {
     let result = recognizer.recognize(input);
     println!("Result: {result}");
     println!("Words: ");
-    let dict = Dictionary::load();
+    let dict = Dictionary::default();
     let words = dict.greedy_search(&result).0;
     for word in words {
         println!("{word}");
@@ -127,7 +127,7 @@ fn run_pipeline(input: Option<Vec<f32>>) {
     };
     let vad_scorer = SileroVadScorer::init();
     let ipa_processor = IpaProcessor::init(&sliding_window_config);
-    let word_detector = WordDetector::init();
+    let word_detector = WordDetector::init(DEFAULT_CONFUSION_DISTANCE_THRESHOLD);
     println!(
         "Load done (took: {:.2?}), transcribing:",
         load_start.elapsed()

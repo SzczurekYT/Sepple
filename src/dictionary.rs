@@ -3,19 +3,31 @@ use std::{
     fs,
 };
 
-use strsim::generic_levenshtein;
+use phonetics::confusion;
 use unicode_segmentation::{Graphemes, UnicodeSegmentation};
 
 const DICTIONARY_PATH: &str = "dictionary.json";
+const MAX_MISSING_CHARACTERS: usize = 3;
+pub const DEFAULT_CONFUSION_DISTANCE_THRESHOLD: f64 = 0.15;
+
+const DEBUG_ENABLED: bool = false;
+macro_rules! debug_print {
+    ($expr:expr) => {
+        if DEBUG_ENABLED {
+            println!($expr);
+        }
+    };
+}
 
 pub struct Dictionary {
     words: Vec<(String, usize)>,
     pub shortest_word_len: usize,
     pub longest_considered_word_len: usize,
+    pub confusion_distance_threshold: f64,
 }
 
 impl Dictionary {
-    pub fn load() -> Self {
+    pub fn load(confusion_distance_threshold: f64) -> Self {
         let text = fs::read_to_string(DICTIONARY_PATH)
             .unwrap_or_else(|_| panic!("Unable to read {DICTIONARY_PATH}"));
         let words: Vec<String> = serde_json::from_str(&text).unwrap();
@@ -30,12 +42,12 @@ impl Dictionary {
                 (word, len)
             })
             .collect();
-        longest_considered_word_len =
-            longest_considered_word_len + max_difference(longest_considered_word_len);
+        longest_considered_word_len += MAX_MISSING_CHARACTERS;
         Dictionary {
             words,
             shortest_word_len,
             longest_considered_word_len,
+            confusion_distance_threshold,
         }
     }
 
@@ -55,6 +67,7 @@ impl Dictionary {
                 consumed = offset;
                 string = &string[word.len()..];
                 result.push(pattern);
+                debug_print!("remaining: {string}");
             } else {
                 let first_grapheme_size = string
                     .graphemes(true)
@@ -72,21 +85,27 @@ impl Dictionary {
         &'dict self,
         input: &'input str,
     ) -> Option<(&'input str, &'dict str)> {
-        let mut lowest_distance = usize::MAX;
+        debug_print!("Trying {input}");
+        let mut lowest_distance = f64::MAX;
         let mut result = None;
         for (dict_word, len) in &self.words {
-            let max_diff = max_difference(*len);
-            for i in 0..=max_diff {
+            let max_diff = max_lookahead(*len) as isize;
+            for i in -2..=max_diff {
                 let (mut last_index, grapheme) = input
                     .grapheme_indices(true)
-                    .take(*len + i)
+                    .take((*len as isize + i).max(0) as usize)
                     .last()
                     .expect("at least one grapheme");
                 last_index += grapheme.len();
                 let fragment = &input[..last_index];
-                let Some(distance) = strings_are_similiar(fragment, dict_word) else {
+                debug_print!(r#"Is "{fragment}" a "{dict_word}"?"#);
+                let Some(distance) =
+                    strings_are_similiar(fragment, dict_word, self.confusion_distance_threshold)
+                else {
+                    debug_print!("Nope");
                     continue;
                 };
+                debug_print!("Yep, distance {distance:.2}");
                 if distance < lowest_distance {
                     lowest_distance = distance;
                     result = Some((fragment, dict_word.as_ref()));
@@ -97,23 +116,25 @@ impl Dictionary {
     }
 }
 
-/// Returns the difference in levenshtein distance if it is close enough
-fn strings_are_similiar(string: &str, pattern: &str) -> Option<usize> {
-    let len = string.graphemes(true).count();
-    let max_difference = max_difference(len);
-    let distance = generic_levenshtein(
-        &GraphemesStringIterator(string),
-        &GraphemesStringIterator(pattern),
-    );
-    (distance <= max_difference).then_some(distance)
+impl Default for Dictionary {
+    fn default() -> Self {
+        Self::load(DEFAULT_CONFUSION_DISTANCE_THRESHOLD)
+    }
 }
 
-const fn max_difference(len: usize) -> usize {
+/// Returns the difference in levenshtein distance if it is close enough
+fn strings_are_similiar(string: &str, pattern: &str, threshold: f64) -> Option<f64> {
+    let distance = 1.0 - confusion::similarity(string, pattern);
+
+    (distance <= threshold).then_some(distance)
+}
+
+const fn max_lookahead(len: usize) -> usize {
     match len {
         0..4 => 0,
         4..6 => 1,
         6..9 => 2,
-        _ => 3,
+        _ => MAX_MISSING_CHARACTERS,
     }
 }
 
@@ -135,16 +156,36 @@ mod test {
     #[test]
     fn test_greedy_split_prizim_fera_kejfida() {
         const SEQUENCE: &str = "prizimfɛrakɛlfidapriziɲfɛrakɛjfidariziɲfɛrakɛjfidapɾizinfɛraːkaifiːdaːpriːzɨjimfɛraːkɛifiːdɛl";
-        const REMAINDER: &str = "ːkɛifiːdɛl";
+        const REMAINDER: &str = "l";
         const SEQUENCE_SPLIT: &[&str] = &[
             "prizim", "fɛra", "kɛjfida", //
             "prizim", "fɛra", "kɛjfida", //
-            "fɛra", "kɛjfida", //
-            "prizim", "fɛra", //
-            "fɛra",
+            "prizim", "fɛra", "kɛjfida", //
+            "prizim", "fɛra", "kɛjfida", //
+            "prizim", "fɛra", "kɛjfida", //
         ];
 
-        let dict = Dictionary::load();
+        let dict = Dictionary::default();
+        let (words, consumed) = dict.greedy_search(SEQUENCE);
+
+        assert_eq!(&words, SEQUENCE_SPLIT);
+        assert_eq!(&SEQUENCE[consumed..], REMAINDER);
+    }
+
+    #[test]
+    fn test_greedy_split_prizim_fera_kejfida_2() {
+        const SEQUENCE: &str =
+            "pɾizimfɛɾakɛlfidapɾilifɛrakajfidarizɲfɛrakajʃinakɾitunfɛɾaːkaiɸpɾiːzinferaːkɛlihinæl";
+        const REMAINDER: &str = "ːkɛlihinæl";
+        const SEQUENCE_SPLIT: &[&str] = &[
+            "prizim", "fɛra", "kɛjfida", //
+            "prizim", "kɛjfida", //
+            "fɛra", "kɛjfida", //
+            "fɛra",    //
+            "prizim", "fɛra", //
+        ];
+
+        let dict = Dictionary::default();
         let (words, consumed) = dict.greedy_search(SEQUENCE);
 
         assert_eq!(&words, SEQUENCE_SPLIT);
@@ -157,7 +198,22 @@ mod test {
         const REMAINDER: &str = "";
         const SEQUENCE_SPLIT: &[&str] = &["prizim"];
 
-        let dict = Dictionary::load();
+        let dict = Dictionary::default();
+        let (words, consumed) = dict.greedy_search(SEQUENCE);
+
+        assert_eq!(&words, SEQUENCE_SPLIT);
+        assert_eq!(&SEQUENCE[consumed..], REMAINDER);
+    }
+
+    #[test]
+    fn test_greedy_split_prilifera() {
+        const SEQUENCE: &str = "pɾilifɛra";
+        const REMAINDER: &str = "ɛra";
+        // const SEQUENCE_SPLIT: &[&str] = &["prizim", "fɛra"];
+        // pɾilif matchest the best to prizim, so it eats the f and cuts the second word
+        const SEQUENCE_SPLIT: &[&str] = &["prizim"];
+
+        let dict = Dictionary::default();
         let (words, consumed) = dict.greedy_search(SEQUENCE);
 
         assert_eq!(&words, SEQUENCE_SPLIT);
@@ -170,7 +226,7 @@ mod test {
         const REMAINDER: &str = SEQUENCE;
         const SEQUENCE_SPLIT: &[&str] = &[];
 
-        let dict = Dictionary::load();
+        let dict = Dictionary::default();
         let (words, consumed) = dict.greedy_search(SEQUENCE);
 
         assert_eq!(&words, SEQUENCE_SPLIT);

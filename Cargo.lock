@@ -5362,6 +5362,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "phonetics-rs"
+version = "0.3.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a9d05f1367ea5d009f329589395a26cd05ee9bcc50e5488c9087e3af03c064ba"
+
+[[package]]
 name = "pin-project-lite"
 version = "0.2.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6416,9 +6422,9 @@ dependencies = [
  "cpal",
  "hound",
  "multipa-model",
+ "phonetics-rs",
  "serde",
  "serde_json",
- "strsim",
  "tokio",
  "unicode-segmentation",
 ]

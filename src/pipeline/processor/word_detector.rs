@@ -21,10 +21,10 @@ pub struct WordDetector {
 }
 
 impl WordDetector {
-    pub fn init() -> Self {
+    pub fn init(confusion_distance_threshold: f64) -> Self {
         Self {
             text_buffer: String::with_capacity(100),
-            dictionary: Dictionary::load(),
+            dictionary: Dictionary::load(confusion_distance_threshold),
             last_end_time: Duration::ZERO,
         }
     }
@@ -76,6 +76,7 @@ impl PipelineProcessor for WordDetector {
         }
 
         let (words, consumed) = self.dictionary.greedy_search(&self.text_buffer);
+
         for word in words {
             sender.send(word.to_owned()).await?;
         }
@@ -91,6 +92,9 @@ impl PipelineProcessor for WordDetector {
                     .expect("some, because previous element in iterator was some");
                 self.text_buffer = self.text_buffer[index..].to_owned();
             }
+        }
+        if debug_enabled() {
+            println!("WD Buffer After: {}", self.text_buffer);
         }
 
         Ok(())
