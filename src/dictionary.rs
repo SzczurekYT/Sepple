@@ -1,5 +1,5 @@
 use std::{
-    cmp::{max, min},
+    cmp::{Reverse, max, min},
     fs,
 };
 
@@ -33,7 +33,7 @@ impl Dictionary {
         let words: Vec<String> = serde_json::from_str(&text).unwrap();
         let mut shortest_word_len = usize::MAX;
         let mut longest_considered_word_len = 0;
-        let words: Vec<(String, usize)> = words
+        let mut words: Vec<(String, usize)> = words
             .into_iter()
             .map(|word| {
                 let len = word.graphemes(true).count();
@@ -42,7 +42,11 @@ impl Dictionary {
                 (word, len)
             })
             .collect();
+
+        words.sort_by_key(|(_, len)| Reverse(*len));
+
         longest_considered_word_len += MAX_MISSING_CHARACTERS;
+
         Dictionary {
             words,
             shortest_word_len,
