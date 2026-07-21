@@ -142,7 +142,7 @@ fn run_pipeline(input: Option<Vec<f32>>) {
     pipeline
         .then(AudioChunker::new(vad::CHUNK_SIZE))
         .then(vad_scorer)
-        .then(VadFilter::new(0.35, 0.35, 6))
+        .then(VadFilter::new(0.35, 0.35, 10))
         .then(SlidingWindowChunker::new(
             &sliding_window_config,
             &Duration::from_millis(40),
