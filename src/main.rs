@@ -97,7 +97,7 @@ fn run_single(input: &[f32]) {
     println!("Result: {result}");
     println!("Words: ");
     let dict = Dictionary::default();
-    let words = dict.greedy_search(&result).0;
+    let words = dict.find_words_in_string(&result).0;
     for word in words {
         println!("{word}");
     }

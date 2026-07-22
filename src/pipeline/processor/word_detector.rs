@@ -75,7 +75,7 @@ impl PipelineProcessor for WordDetector {
             println!("WD Buffer: {}", self.text_buffer);
         }
 
-        let (words, consumed) = self.dictionary.greedy_search(&self.text_buffer);
+        let (words, consumed) = self.dictionary.find_words_in_string(&self.text_buffer);
 
         for word in words {
             sender.send(word.to_owned()).await?;

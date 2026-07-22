@@ -55,7 +55,89 @@ impl Dictionary {
         }
     }
 
-    pub fn greedy_search(&self, mut string: &str) -> (Vec<&str>, usize) {
+    pub fn find_words_in_string<'dict, 'input, 'out>(
+        &'dict self,
+        input: &'input str,
+    ) -> (Vec<&'out str>, usize)
+    where
+        'dict: 'out,
+        'input: 'out,
+    {
+        if input.is_empty() {
+            return (vec![], 0);
+        }
+
+        let exact_search_entries = self.exact_find_words(input);
+
+        let entry_count = exact_search_entries.len();
+        let mut words = Vec::with_capacity(entry_count);
+
+        let mut iter = exact_search_entries.into_iter();
+
+        // Last one is handled separately
+        for entry in iter.by_ref().take(entry_count - 1) {
+            match entry {
+                SearchEntry::Match(word) => words.push(word),
+                SearchEntry::NoMatch(string) => {
+                    let (found, _) = self.fuzzy_find_words(string);
+                    words.extend(found);
+                }
+            }
+        }
+
+        let consumed;
+
+        match iter.next().expect("unreachable for non empty input") {
+            SearchEntry::Match(word) => {
+                consumed = input.len();
+                words.push(word);
+            }
+            SearchEntry::NoMatch(string) => {
+                let (found, consumed_from_input) = self.fuzzy_find_words(string);
+                words.extend(found);
+                consumed = input.len() - string.len() + consumed_from_input;
+            }
+        }
+
+        (words, consumed)
+    }
+
+    pub fn exact_find_words<'a>(&'a self, mut string: &'a str) -> Vec<SearchEntry<'a>> {
+        use SearchEntry::*;
+        let mut found_words = vec![];
+
+        let mut i = 0;
+
+        'outer: while i < string.len() {
+            for (pattern, _) in &self.words {
+                let end_index = i + pattern.len();
+                if !string.is_char_boundary(end_index) {
+                    continue;
+                }
+                let fragment = &string[i..end_index];
+                if fragment == pattern {
+                    let before = &string[..i];
+                    if !before.is_empty() {
+                        found_words.push(NoMatch(before));
+                    }
+                    found_words.push(Match(fragment));
+                    string = &string[end_index..];
+                    i = 0;
+                    continue 'outer;
+                }
+            }
+
+            i = string.ceil_char_boundary(i + 1);
+        }
+
+        if !string.is_empty() {
+            found_words.push(NoMatch(string));
+        }
+
+        found_words
+    }
+
+    pub fn fuzzy_find_words(&self, mut string: &str) -> (Vec<&str>, usize) {
         let mut result = vec![];
         let mut offset = 0;
         let mut consumed = 0;
@@ -65,7 +147,7 @@ impl Dictionary {
             .nth(self.shortest_word_len - 1)
             .is_some()
         {
-            let word = self.try_find_word(string);
+            let word = self.fuzzy_match_word(string);
             if let Some((word, pattern)) = word {
                 offset += word.len();
                 consumed = offset;
@@ -73,19 +155,15 @@ impl Dictionary {
                 result.push(pattern);
                 debug_print!("remaining: {string}");
             } else {
-                let first_grapheme_size = string
-                    .graphemes(true)
-                    .next()
-                    .expect("at least one grapheme")
-                    .len();
-                offset += first_grapheme_size;
-                string = &string[first_grapheme_size..];
+                let next_index = string.ceil_char_boundary(1);
+                offset += next_index;
+                string = &string[next_index..];
             }
         }
         (result, consumed)
     }
 
-    pub fn try_find_word<'dict, 'input>(
+    pub fn fuzzy_match_word<'dict, 'input>(
         &'dict self,
         input: &'input str,
     ) -> Option<(&'input str, &'dict str)> {
@@ -101,15 +179,20 @@ impl Dictionary {
                     .last()
                     .expect("at least one grapheme");
                 last_index += grapheme.len();
+
                 let fragment = &input[..last_index];
+
                 debug_print!(r#"Is "{fragment}" a "{dict_word}"?"#);
-                let Some(distance) =
-                    strings_are_similiar(fragment, dict_word, self.confusion_distance_threshold)
-                else {
-                    debug_print!("Nope");
+
+                let distance = calculate_distance(fragment, dict_word);
+
+                if distance <= self.confusion_distance_threshold {
+                    debug_print!("Yep, distance {distance:.2}");
+                } else {
+                    debug_print!("Nope, distance {distance:.2}");
                     continue;
                 };
-                debug_print!("Yep, distance {distance:.2}");
+
                 if distance < lowest_distance {
                     lowest_distance = distance;
                     result = Some((fragment, dict_word.as_ref()));
@@ -126,11 +209,14 @@ impl Default for Dictionary {
     }
 }
 
-/// Returns the difference in levenshtein distance if it is close enough
-fn strings_are_similiar(string: &str, pattern: &str, threshold: f64) -> Option<f64> {
-    let distance = 1.0 - confusion::similarity(string, pattern);
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub enum SearchEntry<'a> {
+    Match(&'a str),
+    NoMatch(&'a str),
+}
 
-    (distance <= threshold).then_some(distance)
+fn calculate_distance(string: &str, pattern: &str) -> f64 {
+    1.0 - confusion::similarity(string, pattern)
 }
 
 const fn max_lookahead(len: usize) -> usize {
@@ -155,10 +241,10 @@ impl<'b> IntoIterator for &GraphemesStringIterator<'b> {
 
 #[cfg(test)]
 mod test {
-    use crate::dictionary::Dictionary;
+    use crate::dictionary::{Dictionary, SearchEntry};
 
     #[test]
-    fn test_greedy_split_prizim_fera_kejfida() {
+    fn test_search_prizim_fera_kejfida() {
         const SEQUENCE: &str = "prizimfɛrakɛlfidapriziɲfɛrakɛjfidariziɲfɛrakɛjfidapɾizinfɛraːkaifiːdaːpriːzɨjimfɛraːkɛifiːdɛl";
         const REMAINDER: &str = "l";
         const SEQUENCE_SPLIT: &[&str] = &[
@@ -170,70 +256,93 @@ mod test {
         ];
 
         let dict = Dictionary::default();
-        let (words, consumed) = dict.greedy_search(SEQUENCE);
+        let (words, consumed) = dict.find_words_in_string(SEQUENCE);
 
         assert_eq!(&words, SEQUENCE_SPLIT);
         assert_eq!(&SEQUENCE[consumed..], REMAINDER);
     }
 
     #[test]
-    fn test_greedy_split_prizim_fera_kejfida_2() {
+    fn test_search_prizim_fera_kejfida_2() {
         const SEQUENCE: &str =
             "pɾizimfɛɾakɛlfidapɾilifɛrakajfidarizɲfɛrakajʃinakɾitunfɛɾaːkaiɸpɾiːzinferaːkɛlihinæl";
         const REMAINDER: &str = "ːkɛlihinæl";
         const SEQUENCE_SPLIT: &[&str] = &[
             "prizim", "fɛra", "kɛjfida", //
-            "prizim", "kɛjfida", //
+            "fɛra", "kɛjfida", //
             "fɛra", "kɛjfida", //
             "fɛra",    //
             "prizim", "fɛra", //
         ];
 
         let dict = Dictionary::default();
-        let (words, consumed) = dict.greedy_search(SEQUENCE);
+        let (words, consumed) = dict.find_words_in_string(SEQUENCE);
 
         assert_eq!(&words, SEQUENCE_SPLIT);
         assert_eq!(&SEQUENCE[consumed..], REMAINDER);
     }
 
     #[test]
-    fn test_greedy_split_prizim() {
+    fn test_search_split_prizim() {
         const SEQUENCE: &str = "pɾiːzim";
         const REMAINDER: &str = "";
         const SEQUENCE_SPLIT: &[&str] = &["prizim"];
 
         let dict = Dictionary::default();
-        let (words, consumed) = dict.greedy_search(SEQUENCE);
+        let (words, consumed) = dict.find_words_in_string(SEQUENCE);
 
         assert_eq!(&words, SEQUENCE_SPLIT);
         assert_eq!(&SEQUENCE[consumed..], REMAINDER);
     }
 
     #[test]
-    fn test_greedy_split_prilifera() {
+    fn test_search_prilifera() {
+        // In word "pɾilifɛra"
+        // "pɾilif" is closer then "pɾili" to "prizim"
+        // This test ensures that in such case "fɛra" has higher pririty (because it is an exact match)
+        // and doesn't lose its f to "pɾilif"
         const SEQUENCE: &str = "pɾilifɛra";
-        const REMAINDER: &str = "ɛra";
-        // const SEQUENCE_SPLIT: &[&str] = &["prizim", "fɛra"];
-        // pɾilif matchest the best to prizim, so it eats the f and cuts the second word
-        const SEQUENCE_SPLIT: &[&str] = &["prizim"];
+        const REMAINDER: &str = "";
+        const SEQUENCE_SPLIT: &[&str] = &["fɛra"];
 
         let dict = Dictionary::default();
-        let (words, consumed) = dict.greedy_search(SEQUENCE);
+        let (words, consumed) = dict.find_words_in_string(SEQUENCE);
 
         assert_eq!(&words, SEQUENCE_SPLIT);
         assert_eq!(&SEQUENCE[consumed..], REMAINDER);
     }
 
     #[test]
-    fn test_greedy_split_no_match() {
+    fn test_search_no_match() {
         const SEQUENCE: &str = "Y]+g4Ty}F({7H!8nrn2(1ZH[Y)A0SSg4}0tXy!)013Vz}6kjZW(Fg{bpGY+D:Z1/X&5UmJ4L+X2=r8ji[a)h,i7[n7Ny9";
         const REMAINDER: &str = SEQUENCE;
         const SEQUENCE_SPLIT: &[&str] = &[];
 
         let dict = Dictionary::default();
-        let (words, consumed) = dict.greedy_search(SEQUENCE);
+        let (words, consumed) = dict.find_words_in_string(SEQUENCE);
 
         assert_eq!(&words, SEQUENCE_SPLIT);
         assert_eq!(&SEQUENCE[consumed..], REMAINDER);
+    }
+
+    #[test]
+    fn test_exact_search() {
+        use SearchEntry::*;
+
+        const SEQUENCE: &str = "prizimpɾilifɛrakɛjfidapɾilifɛrakɛlfida";
+        const SEQUENCE_SPLIT: &[SearchEntry] = &[
+            Match("prizim"),
+            NoMatch("pɾili"),
+            Match("fɛra"),
+            Match("kɛjfida"),
+            NoMatch("pɾili"),
+            Match("fɛra"),
+            NoMatch("kɛlfida"),
+        ];
+
+        let dict = Dictionary::default();
+        let words = dict.exact_find_words(SEQUENCE);
+
+        assert_eq!(&words, SEQUENCE_SPLIT);
     }
 }
