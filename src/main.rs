@@ -96,7 +96,7 @@ fn run_single(input: &[f32]) {
     let result = recognizer.recognize(input);
     println!("Result: {result}");
     println!("Words: ");
-    let dict = Dictionary::default();
+    let dict = Dictionary::load(DEFAULT_CONFUSION_DISTANCE_THRESHOLD);
     let words = dict.find_words_in_string(&result).0;
     for word in words {
         println!("{word}");

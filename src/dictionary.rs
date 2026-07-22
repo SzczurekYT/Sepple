@@ -31,6 +31,10 @@ impl Dictionary {
         let text = fs::read_to_string(DICTIONARY_PATH)
             .unwrap_or_else(|_| panic!("Unable to read {DICTIONARY_PATH}"));
         let words: Vec<String> = serde_json::from_str(&text).unwrap();
+        Self::from_vec(words, confusion_distance_threshold)
+    }
+
+    pub fn from_vec(words: Vec<String>, confusion_distance_threshold: f64) -> Self {
         let mut shortest_word_len = usize::MAX;
         let mut longest_considered_word_len = 0;
         let mut words: Vec<(String, usize)> = words
@@ -203,12 +207,6 @@ impl Dictionary {
     }
 }
 
-impl Default for Dictionary {
-    fn default() -> Self {
-        Self::load(DEFAULT_CONFUSION_DISTANCE_THRESHOLD)
-    }
-}
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum SearchEntry<'a> {
     Match(&'a str),
@@ -241,7 +239,14 @@ impl<'b> IntoIterator for &GraphemesStringIterator<'b> {
 
 #[cfg(test)]
 mod test {
-    use crate::dictionary::{Dictionary, SearchEntry};
+    use crate::dictionary::{DEFAULT_CONFUSION_DISTANCE_THRESHOLD, Dictionary, SearchEntry};
+
+    fn create_test_dict() -> Dictionary {
+        Dictionary::from_vec(
+            vec!["prizim".to_owned(), "fɛra".to_owned(), "kɛjfida".to_owned()],
+            DEFAULT_CONFUSION_DISTANCE_THRESHOLD,
+        )
+    }
 
     #[test]
     fn test_search_prizim_fera_kejfida() {
@@ -255,7 +260,7 @@ mod test {
             "prizim", "fɛra", "kɛjfida", //
         ];
 
-        let dict = Dictionary::default();
+        let dict = create_test_dict();
         let (words, consumed) = dict.find_words_in_string(SEQUENCE);
 
         assert_eq!(&words, SEQUENCE_SPLIT);
@@ -275,7 +280,7 @@ mod test {
             "prizim", "fɛra", //
         ];
 
-        let dict = Dictionary::default();
+        let dict = create_test_dict();
         let (words, consumed) = dict.find_words_in_string(SEQUENCE);
 
         assert_eq!(&words, SEQUENCE_SPLIT);
@@ -288,7 +293,7 @@ mod test {
         const REMAINDER: &str = "";
         const SEQUENCE_SPLIT: &[&str] = &["prizim"];
 
-        let dict = Dictionary::default();
+        let dict = create_test_dict();
         let (words, consumed) = dict.find_words_in_string(SEQUENCE);
 
         assert_eq!(&words, SEQUENCE_SPLIT);
@@ -305,7 +310,7 @@ mod test {
         const REMAINDER: &str = "";
         const SEQUENCE_SPLIT: &[&str] = &["fɛra"];
 
-        let dict = Dictionary::default();
+        let dict = create_test_dict();
         let (words, consumed) = dict.find_words_in_string(SEQUENCE);
 
         assert_eq!(&words, SEQUENCE_SPLIT);
@@ -318,7 +323,7 @@ mod test {
         const REMAINDER: &str = SEQUENCE;
         const SEQUENCE_SPLIT: &[&str] = &[];
 
-        let dict = Dictionary::default();
+        let dict = create_test_dict();
         let (words, consumed) = dict.find_words_in_string(SEQUENCE);
 
         assert_eq!(&words, SEQUENCE_SPLIT);
@@ -340,7 +345,7 @@ mod test {
             NoMatch("kɛlfida"),
         ];
 
-        let dict = Dictionary::default();
+        let dict = create_test_dict();
         let words = dict.exact_find_words(SEQUENCE);
 
         assert_eq!(&words, SEQUENCE_SPLIT);
