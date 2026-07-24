@@ -59,6 +59,10 @@ impl Dictionary {
         }
     }
 
+    pub fn from_vec_default(words: Vec<String>) -> Self {
+        Self::from_vec(words, DEFAULT_CONFUSION_DISTANCE_THRESHOLD)
+    }
+
     pub fn find_words_in_string<'dict, 'input, 'out>(
         &'dict self,
         input: &'input str,
@@ -239,13 +243,31 @@ impl<'b> IntoIterator for &GraphemesStringIterator<'b> {
 
 #[cfg(test)]
 mod test {
-    use crate::dictionary::{DEFAULT_CONFUSION_DISTANCE_THRESHOLD, Dictionary, SearchEntry};
+    use crate::dictionary::{Dictionary, SearchEntry};
 
     fn create_test_dict() -> Dictionary {
-        Dictionary::from_vec(
-            vec!["prizim".to_owned(), "fɛra".to_owned(), "kɛjfida".to_owned()],
-            DEFAULT_CONFUSION_DISTANCE_THRESHOLD,
-        )
+        Dictionary::from_vec_default(vec![
+            "prizim".to_owned(),
+            "fɛra".to_owned(),
+            "kɛjfida".to_owned(),
+        ])
+    }
+
+    fn assert_on_dict(dict: &[&str], sequence: &str, remainder: &str, sequence_split: &[&str]) {
+        let dict =
+            Dictionary::from_vec_default(dict.iter().copied().map(ToOwned::to_owned).collect());
+        assert_on_dict_(dict, sequence, remainder, sequence_split);
+    }
+
+    fn assert_on_test_dict(sequence: &str, remainder: &str, sequence_split: &[&str]) {
+        assert_on_dict_(create_test_dict(), sequence, remainder, sequence_split);
+    }
+
+    fn assert_on_dict_(dict: Dictionary, sequence: &str, remainder: &str, sequence_split: &[&str]) {
+        let (words, consumed) = dict.find_words_in_string(sequence);
+
+        assert_eq!(&words, sequence_split);
+        assert_eq!(&sequence[consumed..], remainder);
     }
 
     #[test]
@@ -260,11 +282,7 @@ mod test {
             "prizim", "fɛra", "kɛjfida", //
         ];
 
-        let dict = create_test_dict();
-        let (words, consumed) = dict.find_words_in_string(SEQUENCE);
-
-        assert_eq!(&words, SEQUENCE_SPLIT);
-        assert_eq!(&SEQUENCE[consumed..], REMAINDER);
+        assert_on_test_dict(SEQUENCE, REMAINDER, SEQUENCE_SPLIT);
     }
 
     #[test]
@@ -280,11 +298,7 @@ mod test {
             "prizim", "fɛra", //
         ];
 
-        let dict = create_test_dict();
-        let (words, consumed) = dict.find_words_in_string(SEQUENCE);
-
-        assert_eq!(&words, SEQUENCE_SPLIT);
-        assert_eq!(&SEQUENCE[consumed..], REMAINDER);
+        assert_on_test_dict(SEQUENCE, REMAINDER, SEQUENCE_SPLIT);
     }
 
     #[test]
@@ -293,11 +307,7 @@ mod test {
         const REMAINDER: &str = "";
         const SEQUENCE_SPLIT: &[&str] = &["prizim"];
 
-        let dict = create_test_dict();
-        let (words, consumed) = dict.find_words_in_string(SEQUENCE);
-
-        assert_eq!(&words, SEQUENCE_SPLIT);
-        assert_eq!(&SEQUENCE[consumed..], REMAINDER);
+        assert_on_test_dict(SEQUENCE, REMAINDER, SEQUENCE_SPLIT);
     }
 
     #[test]
@@ -310,11 +320,27 @@ mod test {
         const REMAINDER: &str = "";
         const SEQUENCE_SPLIT: &[&str] = &["fɛra"];
 
-        let dict = create_test_dict();
-        let (words, consumed) = dict.find_words_in_string(SEQUENCE);
+        assert_on_test_dict(SEQUENCE, REMAINDER, SEQUENCE_SPLIT);
+    }
 
-        assert_eq!(&words, SEQUENCE_SPLIT);
-        assert_eq!(&SEQUENCE[consumed..], REMAINDER);
+    #[test]
+    fn test_search_evi() {
+        const DICT: &[&str] = &["evi"];
+        const SEQUENCE: &str = "ɨraʑɲɛeitakpavinna";
+        const REMAINDER: &str = "nna";
+        const SEQUENCE_SPLIT: &[&str] = &["evi"];
+
+        assert_on_dict(DICT, SEQUENCE, REMAINDER, SEQUENCE_SPLIT);
+    }
+
+    #[test]
+    fn test_search_fera() {
+        const DICT: &[&str] = &["fɛra"];
+        const SEQUENCE: &str = "ʂtut͡sɔʐkadaraztvatʂɨ";
+        const REMAINDER: &str = "ztvatʂɨ";
+        const SEQUENCE_SPLIT: &[&str] = &["fɛra"];
+
+        assert_on_dict(DICT, SEQUENCE, REMAINDER, SEQUENCE_SPLIT);
     }
 
     #[test]
@@ -323,11 +349,7 @@ mod test {
         const REMAINDER: &str = SEQUENCE;
         const SEQUENCE_SPLIT: &[&str] = &[];
 
-        let dict = create_test_dict();
-        let (words, consumed) = dict.find_words_in_string(SEQUENCE);
-
-        assert_eq!(&words, SEQUENCE_SPLIT);
-        assert_eq!(&SEQUENCE[consumed..], REMAINDER);
+        assert_on_test_dict(SEQUENCE, REMAINDER, SEQUENCE_SPLIT);
     }
 
     #[test]
