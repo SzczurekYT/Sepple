@@ -194,7 +194,7 @@ impl Dictionary {
 
                 let distance = calculate_distance(fragment, dict_word);
 
-                if distance <= self.confusion_distance_threshold {
+                if distance <= get_threshold(*len) {
                     debug_print!("Yep, distance {distance:.2}");
                 } else {
                     debug_print!("Nope, distance {distance:.2}");
@@ -230,6 +230,14 @@ const fn max_lookahead(len: usize) -> usize {
     }
 }
 
+const fn get_threshold(len: usize) -> f64 {
+    match len {
+        0..=3 => 0.06,
+        4..=6 => 0.13,
+        _ => DEFAULT_CONFUSION_DISTANCE_THRESHOLD,
+    }
+}
+
 struct GraphemesStringIterator<'a>(&'a str);
 
 impl<'b> IntoIterator for &GraphemesStringIterator<'b> {
@@ -253,16 +261,19 @@ mod test {
         ])
     }
 
+    #[track_caller]
     fn assert_on_dict(dict: &[&str], sequence: &str, remainder: &str, sequence_split: &[&str]) {
         let dict =
             Dictionary::from_vec_default(dict.iter().copied().map(ToOwned::to_owned).collect());
         assert_on_dict_(dict, sequence, remainder, sequence_split);
     }
 
+    #[track_caller]
     fn assert_on_test_dict(sequence: &str, remainder: &str, sequence_split: &[&str]) {
         assert_on_dict_(create_test_dict(), sequence, remainder, sequence_split);
     }
 
+    #[track_caller]
     fn assert_on_dict_(dict: Dictionary, sequence: &str, remainder: &str, sequence_split: &[&str]) {
         let (words, consumed) = dict.find_words_in_string(sequence);
 
@@ -277,7 +288,7 @@ mod test {
         const SEQUENCE_SPLIT: &[&str] = &[
             "prizim", "fɛra", "kɛjfida", //
             "prizim", "fɛra", "kɛjfida", //
-            "prizim", "fɛra", "kɛjfida", //
+            "fɛra", "kɛjfida", //
             "prizim", "fɛra", "kɛjfida", //
             "prizim", "fɛra", "kɛjfida", //
         ];
@@ -327,8 +338,8 @@ mod test {
     fn test_search_evi() {
         const DICT: &[&str] = &["evi"];
         const SEQUENCE: &str = "ɨraʑɲɛeitakpavinna";
-        const REMAINDER: &str = "nna";
-        const SEQUENCE_SPLIT: &[&str] = &["evi"];
+        const REMAINDER: &str = SEQUENCE;
+        const SEQUENCE_SPLIT: &[&str] = &[];
 
         assert_on_dict(DICT, SEQUENCE, REMAINDER, SEQUENCE_SPLIT);
     }
@@ -337,8 +348,8 @@ mod test {
     fn test_search_fera() {
         const DICT: &[&str] = &["fɛra"];
         const SEQUENCE: &str = "ʂtut͡sɔʐkadaraztvatʂɨ";
-        const REMAINDER: &str = "ztvatʂɨ";
-        const SEQUENCE_SPLIT: &[&str] = &["fɛra"];
+        const REMAINDER: &str = SEQUENCE;
+        const SEQUENCE_SPLIT: &[&str] = &[];
 
         assert_on_dict(DICT, SEQUENCE, REMAINDER, SEQUENCE_SPLIT);
     }
