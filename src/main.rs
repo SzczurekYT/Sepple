@@ -1,25 +1,13 @@
-pub mod debug;
-pub mod dictionary;
-pub mod ipa_recognizer;
-pub mod pipeline;
-pub mod timestamped_vec;
-pub mod units;
-pub mod vad;
-
 use std::{
-    collections::HashMap,
-    fs,
     iter::{self},
-    path::{Path, PathBuf},
-    sync::atomic::{AtomicU8, Ordering},
+    path::PathBuf,
     time::{Duration, Instant},
 };
 
 use burn::backend::Flex;
 use clap::{Parser, Subcommand};
-use hound::{WavReader, WavWriter};
 
-use crate::{
+use sepple::{
     debug::{assert_string_printer::AssertStringPrinter, audio_logger::AudioLogger},
     dictionary::{DEFAULT_CONFUSION_DISTANCE_THRESHOLD, Dictionary},
     ipa_recognizer::IpaRecognizer,
@@ -35,12 +23,10 @@ use crate::{
         },
         producer::{capture::AudioCapture, memory_audio_source::MemoryAudioSource},
     },
-    units::{SAMPLE_RATE_U32, duration_to_sample_count},
-    vad::Vad,
+    read_wav_to_f32, save_f32_to_wav, set_debug,
+    units::duration_to_sample_count,
+    vad::{self, Vad},
 };
-
-pub(crate) static DEBUG: AtomicU8 = AtomicU8::new(0);
-pub type SeppleBackend = Flex;
 
 #[derive(Parser)]
 #[command(version, about, long_about = None)]
@@ -74,7 +60,7 @@ enum Command {
 fn main() {
     let cli = Cli::parse();
 
-    DEBUG.store(cli.verbose, Ordering::SeqCst);
+    set_debug(cli.verbose);
 
     match cli.command {
         Command::File { file, silero } => {
@@ -167,47 +153,4 @@ fn run_pipeline(input: Option<Vec<f32>>) {
             "fɛra".to_owned(),
         ]));
     // .finish_and_run(ValuePrinter::new());
-}
-
-pub fn load_vocab(path: &str) -> HashMap<usize, String> {
-    let data = fs::read_to_string(path).expect("Unable to read vocab.json");
-    let map: HashMap<String, usize> =
-        serde_json::from_str(&data).expect("Invalid vocab.json format");
-
-    map.into_iter().map(|(token, id)| (id, token)).collect()
-}
-
-pub fn read_wav_to_f32<P: AsRef<Path>>(path: P) -> Vec<f32> {
-    let mut reader = WavReader::open(path).expect("Failed to open WAV file");
-    let spec = reader.spec();
-    assert_eq!(spec.channels, 1, "Audio must be mono");
-    assert_eq!(
-        spec.sample_rate, SAMPLE_RATE_U32,
-        "Sample rate must be 16 kHz"
-    );
-    assert_eq!(spec.bits_per_sample, 16, "Only 16‑bit PCM is supported");
-
-    // normalize to [-1.0, 1.0]
-    reader
-        .samples::<i16>()
-        .map(|s| s.unwrap() as f32 / (i16::MAX as f32 + 1.0))
-        .collect()
-}
-
-pub fn save_f32_to_wav<P: AsRef<Path>>(samples: &[f32], path: P) {
-    let spec = hound::WavSpec {
-        channels: 1,
-        sample_rate: SAMPLE_RATE_U32,
-        bits_per_sample: 16,
-        sample_format: hound::SampleFormat::Int,
-    };
-    let mut writer = WavWriter::create(path, spec).expect("Failed to open WAV file");
-    for sample in samples {
-        let amplitude = i16::MAX as f32;
-        writer.write_sample((sample * amplitude) as i16).unwrap();
-    }
-}
-
-pub fn debug_enabled() -> bool {
-    DEBUG.load(Ordering::Relaxed) > 0
 }
