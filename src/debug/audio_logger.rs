@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::{fs::create_dir_all, path::PathBuf};
 
 use tokio::sync::mpsc::{Sender, error::SendError};
 
@@ -16,6 +16,8 @@ pub struct AudioLogger {
 
 impl AudioLogger {
     pub fn new(chunk_size: Option<usize>, path: &str) -> Self {
+        create_dir_all(path).unwrap();
+
         Self {
             chunk_size,
             path: path.into(),
@@ -28,7 +30,7 @@ impl PipelineConsumer for AudioLogger {
     type Input = TimestampedVec<f32>;
 
     fn input_size(&self) -> Option<usize> {
-        None
+        self.chunk_size
     }
 }
 
