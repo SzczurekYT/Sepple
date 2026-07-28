@@ -3,6 +3,8 @@ name = "sepple"
 version.workspace = true
 edition.workspace = true
 
+default-run = "sepple"
+
 [workspace]
 members = ["multipa-model"]
 
