@@ -2,24 +2,26 @@ use std::{collections::HashMap, fs};
 
 use burn::{Tensor, prelude::Backend, tensor::backend::BackendTypes};
 
-use multipa_model::Model;
+use multipa_model::MultipaModel;
 use serde_json::Value;
 
 pub struct IpaRecognizer<B: Backend + BackendTypes> {
     device: B::Device,
-    model: Model<B>,
+    model: MultipaModel<B>,
     vocab: HashMap<i32, String>,
     padding_token_id: i32,
 }
 
 impl<B: Backend + BackendTypes> IpaRecognizer<B> {
-    pub fn init() -> Self {
+    pub fn init(path: &str) -> Self {
         let vocab = load_vocab("model/vocab.json");
         let padding_token_id = load_padding_token_id_from_config("model/config.json");
 
+        let device = B::Device::default();
+
         Self {
-            device: B::Device::default(),
-            model: Model::default(),
+            model: MultipaModel::from_file(path, &device),
+            device,
             vocab,
             padding_token_id,
         }

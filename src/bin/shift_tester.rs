@@ -11,7 +11,7 @@ async fn main() {
     let input = read_wav_to_f32(file);
 
     println!("Loading model");
-    let recognizer = Arc::new(IpaRecognizer::<Flex>::init());
+    let recognizer = Arc::new(IpaRecognizer::<Flex>::init("./model/multipa_sim.bpk"));
     println!("Load done");
 
     // Limit the number of work done at the same time to prevent consuming all RAM

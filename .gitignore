@@ -5,6 +5,7 @@
 *.flac
 
 /model/*.onnx
+/model/multipa_sim.bpk
 /target
 
 # IDE files

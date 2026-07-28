@@ -1,2 +1,3 @@
-#![allow(clippy::all)]
-include!(concat!(env!("OUT_DIR"), "/model/multipa_sim.rs"));
+mod multipa_sim;
+
+pub use multipa_sim::Model as MultipaModel;

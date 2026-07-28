@@ -28,6 +28,8 @@ use sepple::{
     vad::{self, Vad},
 };
 
+const MULTIPA_MODEL_PATH: &str = "./model/multipa_sim.bpk";
+
 #[derive(Parser)]
 #[command(version, about, long_about = None)]
 struct Cli {
@@ -77,7 +79,7 @@ fn main() {
 
 fn run_single(input: &[f32]) {
     println!("Loading model");
-    let recognizer = IpaRecognizer::<Flex>::init();
+    let recognizer = IpaRecognizer::<Flex>::init(MULTIPA_MODEL_PATH);
     println!("Load done");
     let result = recognizer.recognize(input);
     println!("Result: {result}");
@@ -112,7 +114,7 @@ fn run_pipeline(input: Option<Vec<f32>>) {
         cut_right: Duration::from_millis(500),
     };
     let vad_scorer = SileroVadScorer::init();
-    let ipa_processor = IpaProcessor::init(&sliding_window_config);
+    let ipa_processor = IpaProcessor::init(MULTIPA_MODEL_PATH, &sliding_window_config);
     let word_detector = WordDetector::init(DEFAULT_CONFUSION_DISTANCE_THRESHOLD);
     println!(
         "Load done (took: {:.2?}), transcribing:",

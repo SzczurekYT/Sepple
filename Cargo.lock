@@ -4529,7 +4529,6 @@ name = "multipa-model"
 version = "0.1.0"
 dependencies = [
  "burn",
- "burn-onnx",
  "burn-store",
 ]
 
