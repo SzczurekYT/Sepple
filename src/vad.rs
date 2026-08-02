@@ -1,6 +1,6 @@
 use bunsen::{
     burner::tensor::TensorDataIndexView,
-    kits::speech::silero_vad::{SileroVad, SileroVadCollection, SileroVadContext},
+    kits::speech::silero_vad::{SileroVad, SileroVadCollection, SileroVadContext, reference},
 };
 use burn::{Tensor, prelude::Backend, tensor::backend::BackendTypes};
 
@@ -19,8 +19,8 @@ impl<B: Backend> Vad<B> {
     pub fn init() -> Self {
         let device = B::Device::default();
 
-        let vad = SileroVadCollection::load_from_burnpack_file(
-            "./model/silero_vad_op18_ifless.bpk",
+        let vad = SileroVadCollection::load_from_burnpack_bytes(
+            reference::burnpack_as_burn_bytes(),
             &device,
         )
         .expect("Failed to load silero vad")
