@@ -9,7 +9,7 @@ use clap::{Parser, Subcommand};
 
 use sepple::{
     debug::{assert_string_printer::AssertStringPrinter, audio_logger::AudioLogger},
-    dictionary::{DEFAULT_CONFUSION_DISTANCE_THRESHOLD, Dictionary},
+    dictionary::Dictionary,
     ipa_recognizer::IpaRecognizer,
     pipeline::{
         Pipeline,
@@ -29,6 +29,7 @@ use sepple::{
 };
 
 const MULTIPA_MODEL_PATH: &str = "./model/multipa_sim.bpk";
+pub const DICTIONARY_PATH: &str = "dictionary.json";
 
 #[derive(Parser)]
 #[command(version, about, long_about = None)]
@@ -79,12 +80,12 @@ fn main() {
 
 fn run_single(input: &[f32]) {
     println!("Loading model");
-    let recognizer = IpaRecognizer::<Flex>::init(MULTIPA_MODEL_PATH);
+    let recognizer = IpaRecognizer::<Flex>::init_default(MULTIPA_MODEL_PATH);
     println!("Load done");
     let result = recognizer.recognize(input);
     println!("Result: {result}");
     println!("Words: ");
-    let dict = Dictionary::load(DEFAULT_CONFUSION_DISTANCE_THRESHOLD);
+    let dict = Dictionary::from_file(DICTIONARY_PATH);
     let words = dict.find_words_in_string(&result).0;
     for word in words {
         println!("{word}");
@@ -115,7 +116,7 @@ fn run_pipeline(input: Option<Vec<f32>>) {
     };
     let vad_scorer = SileroVadScorer::init();
     let ipa_processor = IpaProcessor::init(MULTIPA_MODEL_PATH, &sliding_window_config);
-    let word_detector = WordDetector::init(DEFAULT_CONFUSION_DISTANCE_THRESHOLD);
+    let word_detector = WordDetector::init(Dictionary::from_file(DICTIONARY_PATH));
     println!(
         "Load done (took: {:.2?}), transcribing:",
         load_start.elapsed()

@@ -34,7 +34,7 @@ pub struct IpaProcessor {
 
 impl IpaProcessor {
     pub fn init(model_path: &str, config: &SlidingWindowConfig) -> Self {
-        let recognizer = IpaRecognizer::init(model_path).into();
+        let recognizer = IpaRecognizer::init_default(model_path).into();
         let notification = Arc::new(Notify::new());
         notification.notify_one();
         Self {

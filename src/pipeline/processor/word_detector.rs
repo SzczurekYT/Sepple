@@ -21,10 +21,10 @@ pub struct WordDetector {
 }
 
 impl WordDetector {
-    pub fn init(confusion_distance_threshold: f64) -> Self {
+    pub fn init(dictionary: Dictionary) -> Self {
         Self {
             text_buffer: String::with_capacity(100),
-            dictionary: Dictionary::load(confusion_distance_threshold),
+            dictionary,
             last_end_time: Duration::ZERO,
         }
     }

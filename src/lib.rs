@@ -7,8 +7,6 @@ pub mod units;
 pub mod vad;
 
 use std::{
-    collections::HashMap,
-    fs,
     path::Path,
     sync::atomic::{AtomicU8, Ordering},
 };
@@ -20,14 +18,6 @@ use crate::units::SAMPLE_RATE_U32;
 
 pub(crate) static DEBUG: AtomicU8 = AtomicU8::new(0);
 pub type SeppleBackend = Flex;
-
-pub fn load_vocab(path: &str) -> HashMap<usize, String> {
-    let data = fs::read_to_string(path).expect("Unable to read vocab.json");
-    let map: HashMap<String, usize> =
-        serde_json::from_str(&data).expect("Invalid vocab.json format");
-
-    map.into_iter().map(|(token, id)| (id, token)).collect()
-}
 
 pub fn read_wav_to_f32<P: AsRef<Path>>(path: P) -> Vec<f32> {
     let mut reader = WavReader::open(path).expect("Failed to open WAV file");

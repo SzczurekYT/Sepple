@@ -6,7 +6,7 @@ use std::{
 use phonetics::confusion;
 use unicode_segmentation::{Graphemes, UnicodeSegmentation};
 
-const DICTIONARY_PATH: &str = "dictionary.json";
+
 const MAX_MISSING_CHARACTERS: usize = 3;
 pub const DEFAULT_CONFUSION_DISTANCE_THRESHOLD: f64 = 0.15;
 
@@ -23,18 +23,16 @@ pub struct Dictionary {
     words: Vec<(String, usize)>,
     pub shortest_word_len: usize,
     pub longest_considered_word_len: usize,
-    pub confusion_distance_threshold: f64,
 }
 
 impl Dictionary {
-    pub fn load(confusion_distance_threshold: f64) -> Self {
-        let text = fs::read_to_string(DICTIONARY_PATH)
-            .unwrap_or_else(|_| panic!("Unable to read {DICTIONARY_PATH}"));
+    pub fn from_file(path: &str) -> Self {
+        let text = fs::read_to_string(path).unwrap_or_else(|_| panic!("Unable to read {path}"));
         let words: Vec<String> = serde_json::from_str(&text).unwrap();
-        Self::from_vec(words, confusion_distance_threshold)
+        Self::from_vec(words)
     }
 
-    pub fn from_vec(words: Vec<String>, confusion_distance_threshold: f64) -> Self {
+    pub fn from_vec(words: Vec<String>) -> Self {
         let mut shortest_word_len = usize::MAX;
         let mut longest_considered_word_len = 0;
         let mut words: Vec<(String, usize)> = words
@@ -55,12 +53,7 @@ impl Dictionary {
             words,
             shortest_word_len,
             longest_considered_word_len,
-            confusion_distance_threshold,
         }
-    }
-
-    pub fn from_vec_default(words: Vec<String>) -> Self {
-        Self::from_vec(words, DEFAULT_CONFUSION_DISTANCE_THRESHOLD)
     }
 
     pub fn find_words_in_string<'dict, 'input, 'out>(
@@ -254,7 +247,7 @@ mod test {
     use crate::dictionary::{Dictionary, SearchEntry};
 
     fn create_test_dict() -> Dictionary {
-        Dictionary::from_vec_default(vec![
+        Dictionary::from_vec(vec![
             "prizim".to_owned(),
             "fɛra".to_owned(),
             "kɛjfida".to_owned(),
@@ -263,8 +256,7 @@ mod test {
 
     #[track_caller]
     fn assert_on_dict(dict: &[&str], sequence: &str, remainder: &str, sequence_split: &[&str]) {
-        let dict =
-            Dictionary::from_vec_default(dict.iter().copied().map(ToOwned::to_owned).collect());
+        let dict = Dictionary::from_vec(dict.iter().copied().map(ToOwned::to_owned).collect());
         assert_on_dict_(dict, sequence, remainder, sequence_split);
     }
 

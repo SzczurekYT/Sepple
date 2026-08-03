@@ -5,6 +5,9 @@ use burn::{Tensor, prelude::Backend, tensor::backend::BackendTypes};
 use multipa_model::MultipaModel;
 use serde_json::Value;
 
+const PAD_TOKEN_ID: i32 = 310;
+const VOCAB_JSON: &str = include_str!("../model/vocab.json");
+
 pub struct IpaRecognizer<B: Backend + BackendTypes> {
     device: B::Device,
     model: MultipaModel<B>,
@@ -13,14 +16,15 @@ pub struct IpaRecognizer<B: Backend + BackendTypes> {
 }
 
 impl<B: Backend + BackendTypes> IpaRecognizer<B> {
-    pub fn init(path: &str) -> Self {
-        let vocab = load_vocab("model/vocab.json");
-        let padding_token_id = load_padding_token_id_from_config("model/config.json");
+    pub fn init_default(model_path: &str) -> Self {
+        Self::init(model_path, PAD_TOKEN_ID, load_vocab_from_json(VOCAB_JSON))
+    }
 
+    pub fn init(model_path: &str, padding_token_id: i32, vocab: HashMap<i32, String>) -> Self {
         let device = B::Device::default();
 
         Self {
-            model: MultipaModel::from_file(path, &device),
+            model: MultipaModel::from_file(model_path, &device),
             device,
             vocab,
             padding_token_id,
@@ -98,9 +102,8 @@ impl<B: Backend + BackendTypes> IpaRecognizer<B> {
     }
 }
 
-pub fn load_vocab(path: &str) -> HashMap<i32, String> {
-    let data = fs::read_to_string(path).expect("Unable to read vocab.json");
-    let map: HashMap<String, i32> = serde_json::from_str(&data).expect("Invalid vocab.json format");
+pub fn load_vocab_from_json(json: &str) -> HashMap<i32, String> {
+    let map: HashMap<String, i32> = serde_json::from_str(json).expect("Invalid vocab.json format");
 
     map.into_iter().map(|(token, id)| (id, token)).collect()
 }
