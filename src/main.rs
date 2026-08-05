@@ -142,7 +142,7 @@ fn run_pipeline(input: Option<Vec<f32>>) {
         ))
         .then(ipa_processor)
         .then(word_detector)
-        .finish_and_run(AssertStringPrinter::new(vec![
+        .build_and_run(AssertStringPrinter::new(vec![
             "prizim".to_owned(),
             "fɛra".to_owned(),
             "kɛjfida".to_owned(),

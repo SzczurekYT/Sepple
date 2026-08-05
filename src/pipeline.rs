@@ -2,7 +2,7 @@ pub mod consumer;
 pub mod processor;
 pub mod producer;
 
-use std::thread::{self};
+use std::thread::{self, JoinHandle};
 
 use tokio::{
     runtime::{self},
@@ -171,7 +171,7 @@ impl<T> Pipeline<T> {
         self
     }
 
-    pub fn finish_and_run<C>(mut self, consumer: C)
+    pub fn build_and_run<C>(mut self, consumer: C)
     where
         C: PipelineSink<Input = T>,
     {
@@ -189,8 +189,18 @@ impl<T> Pipeline<T> {
             .futures
             .push(Box::new(future));
 
-        let mut joins = Vec::with_capacity(self.threads.len());
-        for thread in self.threads {
+        let joins = Self::spawn_threads(self.threads);
+
+        joins.into_iter().for_each(|join| join.join().unwrap());
+    }
+
+    pub fn build_no_consumer(self) -> (Receiver<T>, Vec<JoinHandle<()>>) {
+        (self.receiver, Self::spawn_threads(self.threads))
+    }
+
+    fn spawn_threads(threads: Vec<PipelineThread>) -> Vec<JoinHandle<()>> {
+        let mut joins = Vec::with_capacity(threads.len());
+        for thread in threads {
             joins.push(thread::spawn(|| {
                 let rt = runtime::Builder::new_current_thread()
                     .enable_all()
@@ -209,8 +219,7 @@ impl<T> Pipeline<T> {
                 }
             }));
         }
-
-        joins.into_iter().for_each(|join| join.join().unwrap());
+        joins
     }
 }
 
