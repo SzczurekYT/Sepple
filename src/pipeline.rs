@@ -1,6 +1,6 @@
-pub mod producer;
 pub mod consumer;
 pub mod processor;
+pub mod producer;
 
 use std::thread::{self};
 

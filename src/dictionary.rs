@@ -6,7 +6,6 @@ use std::{
 use phonetics::confusion;
 use unicode_segmentation::{Graphemes, UnicodeSegmentation};
 
-
 const MAX_MISSING_CHARACTERS: usize = 3;
 pub const DEFAULT_CONFUSION_DISTANCE_THRESHOLD: f64 = 0.15;
 
