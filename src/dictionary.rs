@@ -7,7 +7,6 @@ use phonetics::confusion;
 use unicode_segmentation::{Graphemes, UnicodeSegmentation};
 
 const MAX_MISSING_CHARACTERS: usize = 3;
-pub const DEFAULT_CONFUSION_DISTANCE_THRESHOLD: f64 = 0.15;
 
 const DEBUG_ENABLED: bool = false;
 macro_rules! debug_print {
@@ -171,25 +170,27 @@ impl Dictionary {
         let mut lowest_distance = f64::MAX;
         let mut result = None;
         for (dict_word, len) in &self.words {
-            let max_diff = max_lookahead(*len) as isize;
+            let max_diff = max_lookahead(*len);
             for i in -2..=max_diff {
                 let (mut last_index, grapheme) = input
                     .grapheme_indices(true)
-                    .take((*len as isize + i).max(0) as usize)
+                    .take((*len as i32 + i).max(0) as usize)
                     .last()
                     .expect("at least one grapheme");
                 last_index += grapheme.len();
 
                 let fragment = &input[..last_index];
 
-                debug_print!(r#"Is "{fragment}" a "{dict_word}"?"#);
-
                 let distance = calculate_distance(fragment, dict_word);
-
-                if distance <= get_threshold(*len) {
-                    debug_print!("Yep, distance {distance:.2}");
+                let threshold = get_threshold(*len);
+                if distance <= threshold {
+                    debug_print!(
+                        "{fragment}..{dict_word} - Yep! - {distance:.3} <= {threshold:.3}"
+                    );
                 } else {
-                    debug_print!("Nope, distance {distance:.2}");
+                    debug_print!(
+                        "{fragment}..{dict_word} - Nope! - {distance:.3} > {threshold:.3}"
+                    );
                     continue;
                 };
 
@@ -213,21 +214,12 @@ fn calculate_distance(string: &str, pattern: &str) -> f64 {
     1.0 - confusion::similarity(string, pattern)
 }
 
-const fn max_lookahead(len: usize) -> usize {
-    match len {
-        0..4 => 0,
-        4..6 => 1,
-        6..9 => 2,
-        _ => MAX_MISSING_CHARACTERS,
-    }
+fn max_lookahead(len: usize) -> i32 {
+    (((len as f32).max(4.) - 4.) / 2.).ceil() as i32
 }
 
 const fn get_threshold(len: usize) -> f64 {
-    match len {
-        0..=3 => 0.06,
-        4..=6 => 0.13,
-        _ => DEFAULT_CONFUSION_DISTANCE_THRESHOLD,
-    }
+    len as f64 * 0.021
 }
 
 struct GraphemesStringIterator<'a>(&'a str);
