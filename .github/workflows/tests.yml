@@ -1,0 +1,28 @@
+name: Tests
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+
+env:
+  CARGO_TERM_COLOR: always
+  # Make sure CI fails on all warnings, including Clippy lints
+  RUSTFLAGS: "-Dwarnings"
+
+jobs:
+  test_linter:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          components: rustfmt, clippy
+      - name: Run Clippy
+        run: cargo clippy --all-targets --all-features --all
+      - name: Run formatter
+        run: cargo fmt --all -- --check
+      - name: Run tests
+        run: cargo test --all --verbose
+      - name: Unused dependencies
+        uses: bnjbvr/cargo-machete@main
