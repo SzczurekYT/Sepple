@@ -4,10 +4,10 @@ use std::{
     time::{Duration, Instant},
 };
 
-use burn::backend::Flex;
 use clap::{Parser, Subcommand};
 
 use sepple::{
+    SeppleBackend,
     debug::audio_logger::AudioLogger,
     dictionary::Dictionary,
     ipa_recognizer::IpaRecognizer,
@@ -81,7 +81,7 @@ fn main() {
 
 fn run_single(input: &[f32]) {
     println!("Loading model");
-    let recognizer = IpaRecognizer::<Flex>::init_default(MULTIPA_MODEL_PATH);
+    let recognizer = IpaRecognizer::<SeppleBackend>::init_default(MULTIPA_MODEL_PATH);
     println!("Load done");
     let result = recognizer.recognize(input);
     println!("Result: {result}");
@@ -95,7 +95,7 @@ fn run_single(input: &[f32]) {
 
 fn run_single_silero(input: &[f32]) {
     println!("Loading model");
-    let mut vad = Vad::<Flex>::init();
+    let mut vad = Vad::<SeppleBackend>::init();
     println!("Load done");
     let result = vad.process_audio(input);
 

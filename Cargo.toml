@@ -5,6 +5,9 @@ edition.workspace = true
 
 default-run = "sepple"
 
+[features]
+wgpu = ["burn/wgpu"]
+
 [workspace]
 members = ["multipa-model"]
 

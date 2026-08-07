@@ -11,12 +11,18 @@ use std::{
     sync::atomic::{AtomicU8, Ordering},
 };
 
+#[cfg(not(feature = "wgpu"))]
 use burn::backend::Flex;
+#[cfg(feature = "wgpu")]
+use burn::backend::Wgpu;
 use hound::{WavReader, WavWriter};
 
 use crate::units::SAMPLE_RATE_U32;
 
 pub(crate) static DEBUG: AtomicU8 = AtomicU8::new(0);
+#[cfg(feature = "wgpu")]
+pub type SeppleBackend = Wgpu;
+#[cfg(not(feature = "wgpu"))]
 pub type SeppleBackend = Flex;
 
 pub fn read_wav_to_f32<P: AsRef<Path>>(path: P) -> Vec<f32> {

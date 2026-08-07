@@ -4,7 +4,6 @@ use std::{
     time::Duration,
 };
 
-use burn::backend::Flex;
 use tokio::{
     sync::{
         Notify,
@@ -14,7 +13,7 @@ use tokio::{
 };
 
 use crate::{
-    debug_enabled,
+    SeppleBackend, debug_enabled,
     ipa_recognizer::{IpaRecognizer, z_score_normalize},
     pipeline::{
         PipelineConsumer, PipelineProcessor, PipelineProducer,
@@ -27,7 +26,7 @@ use crate::{
 };
 
 pub struct IpaProcessor {
-    recognizer: Arc<IpaRecognizer<Flex>>,
+    recognizer: Arc<IpaRecognizer<SeppleBackend>>,
     window_size: usize,
     notification: Arc<Notify>,
     cut_left_logits: usize,
