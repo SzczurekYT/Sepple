@@ -111,9 +111,9 @@ fn run_pipeline(input: Option<Vec<f32>>) {
     let load_start = Instant::now();
     println!("Loading model");
     let sliding_window_config = SlidingWindowConfig {
-        window_size: Duration::from_secs(2),
-        cut_left: Duration::from_millis(500),
-        cut_right: Duration::from_millis(500),
+        window_size: Duration::from_millis(1000),
+        cut_left: Duration::from_millis(150),
+        cut_right: Duration::from_millis(150),
     };
     let vad_scorer = SileroVadScorer::init();
     let ipa_processor = IpaProcessor::init(MULTIPA_MODEL_PATH, &sliding_window_config);

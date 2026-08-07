@@ -21,7 +21,9 @@ use crate::{
         processor::sliding_window::SlidingWindowConfig,
     },
     timestamped_vec::TimestampedVec,
-    units::{duration_to_logit_count, duration_to_sample_count, logit_count_to_time},
+    units::{
+        duration_to_logit_count, duration_to_sample_count, logit_count_to_time, unix_timestamp_now,
+    },
 };
 
 pub struct IpaProcessor {
@@ -119,6 +121,11 @@ impl PipelineProcessor for IpaProcessor {
 
         if text.is_empty() {
             return Ok(());
+        }
+
+        if debug_enabled() {
+            let delay = unix_timestamp_now().saturating_sub(end_time);
+            println!("Text {text} after {delay:.2?}");
         }
 
         sender
