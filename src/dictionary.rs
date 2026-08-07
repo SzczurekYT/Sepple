@@ -338,6 +338,16 @@ mod test {
     }
 
     #[test]
+    fn test_search_liro() {
+        const DICT: &[&str] = &["lirɔ"];
+        const SEQUENCE: &str = "liːro";
+        const REMAINDER: &str = "";
+        const SEQUENCE_SPLIT: &[&str] = &["lirɔ"];
+
+        assert_on_dict(DICT, SEQUENCE, REMAINDER, SEQUENCE_SPLIT);
+    }
+
+    #[test]
     fn test_search_no_match() {
         const SEQUENCE: &str = "Y]+g4Ty}F({7H!8nrn2(1ZH[Y)A0SSg4}0tXy!)013Vz}6kjZW(Fg{bpGY+D:Z1/X&5UmJ4L+X2=r8ji[a)h,i7[n7Ny9";
         const REMAINDER: &str = SEQUENCE;
