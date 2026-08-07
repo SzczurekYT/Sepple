@@ -215,7 +215,10 @@ fn calculate_distance(string: &str, pattern: &str) -> f64 {
 }
 
 fn max_lookahead(len: usize) -> i32 {
-    (((len as f32).max(4.) - 4.) / 2.).ceil() as i32
+    // Starting from `lookahead_start` inclusive add 1 character of lookahead every `lookahead_step`
+    let lookahead_start = 3.0;
+    let lookahead_step = 2.0;
+    (((len as f32).max(lookahead_start) - lookahead_start) / lookahead_step).ceil() as i32
 }
 
 const fn get_threshold(len: usize) -> f64 {
