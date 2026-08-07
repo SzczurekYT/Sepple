@@ -2,11 +2,19 @@ pub mod consumer;
 pub mod processor;
 pub mod producer;
 
-use std::thread::{self, JoinHandle};
+use std::{
+    sync::Arc,
+    thread::{self, JoinHandle},
+};
 
 use tokio::{
     runtime::{self},
-    sync::mpsc::{self, Receiver, Sender, error::SendError},
+    select,
+    sync::{
+        Notify,
+        mpsc::{self, Receiver, Sender, error::SendError},
+    },
+    task::JoinSet,
 };
 
 const BOUNDED_CHANNEL_SIZE: usize = 10;
@@ -189,37 +197,65 @@ impl<T> Pipeline<T> {
             .futures
             .push(Box::new(future));
 
-        let joins = Self::spawn_threads(self.threads);
-
-        joins.into_iter().for_each(|join| join.join().unwrap());
+        Self::spawn_threads(self.threads).join();
     }
 
-    pub fn build_no_consumer(self) -> (Receiver<T>, Vec<JoinHandle<()>>) {
+    pub fn build_no_consumer(self) -> (Receiver<T>, PipelineHandle) {
         (self.receiver, Self::spawn_threads(self.threads))
     }
 
-    fn spawn_threads(threads: Vec<PipelineThread>) -> Vec<JoinHandle<()>> {
+    fn spawn_threads(threads: Vec<PipelineThread>) -> PipelineHandle {
         let mut joins = Vec::with_capacity(threads.len());
+        let quit_notifier = Arc::new(Notify::new());
+
         for thread in threads {
-            joins.push(thread::spawn(|| {
+            let notifier = Arc::clone(&quit_notifier);
+            joins.push(thread::spawn(move || {
                 let rt = runtime::Builder::new_current_thread()
                     .enable_all()
                     .build()
                     .unwrap();
 
-                let mut handles = Vec::with_capacity(thread.futures.len());
+                let mut join_set = JoinSet::new();
 
                 for future in thread.futures {
-                    let handle = rt.spawn(Box::into_pin(future));
-                    handles.push(handle);
+                    join_set.spawn_on(Box::into_pin(future), rt.handle());
                 }
 
-                for handle in handles {
-                    rt.block_on(handle).unwrap();
-                }
+                rt.block_on(async {
+                    loop {
+                        select! {
+                            _ = join_set.join_next()  => {},
+                            _ = notifier.notified() => {
+                                join_set.shutdown().await;
+                                break;
+                            }
+                        };
+                    }
+                });
             }));
         }
-        joins
+
+        PipelineHandle {
+            joins,
+            quit_notifier,
+        }
+    }
+}
+
+pub struct PipelineHandle {
+    joins: Vec<JoinHandle<()>>,
+    quit_notifier: Arc<Notify>,
+}
+
+impl PipelineHandle {
+    pub fn join(self) {
+        self.joins.into_iter().for_each(|join| join.join().unwrap());
+    }
+
+    pub fn cancel(self) {
+        self.quit_notifier.notify_waiters();
+        self.joins.into_iter().for_each(|join| join.join().unwrap());
     }
 }
 

@@ -8,11 +8,12 @@ use burn::backend::Flex;
 use clap::{Parser, Subcommand};
 
 use sepple::{
-    debug::{assert_string_printer::AssertStringPrinter, audio_logger::AudioLogger},
+    debug::audio_logger::AudioLogger,
     dictionary::Dictionary,
     ipa_recognizer::IpaRecognizer,
     pipeline::{
         Pipeline,
+        consumer::value_printer::ValuePrinter,
         processor::{
             chunker::AudioChunker,
             ipa_processor::IpaProcessor,
@@ -142,18 +143,5 @@ fn run_pipeline(input: Option<Vec<f32>>) {
         ))
         .then(ipa_processor)
         .then(word_detector)
-        .build_and_run(AssertStringPrinter::new(vec![
-            "prizim".to_owned(),
-            "fɛra".to_owned(),
-            "kɛjfida".to_owned(),
-            "fɛra".to_owned(),
-            "kɛjfida".to_owned(),
-            "fɛra".to_owned(),
-            "kɛjfida".to_owned(),
-            "prizim".to_owned(),
-            "fɛra".to_owned(),
-            "prizim".to_owned(),
-            "fɛra".to_owned(),
-        ]));
-    // .finish_and_run(ValuePrinter::new());
+        .build_and_run(ValuePrinter::new());
 }
