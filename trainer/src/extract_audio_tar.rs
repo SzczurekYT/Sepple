@@ -27,7 +27,6 @@ pub fn extract_audio_tar(
     let mut archive = tar::Archive::new(file);
 
     let mut extracted: HashSet<String> = HashSet::new();
-    let mut found: HashSet<String> = HashSet::new();
 
     for entry in archive.entries()? {
         let mut entry = entry?;
@@ -51,16 +50,25 @@ pub fn extract_audio_tar(
             }
             let mut out = File::create(&out_path)?;
             io::copy(&mut entry, &mut out)?;
-            found.insert(key.clone());
             bar.set_message(key);
             bar.inc(1);
         }
     }
 
     bar.finish();
-    println!("Done, found {}/{} audio files", found.len(), total);
 
-    write_found_list(output_csv, &rows, &found)?;
+    let words_satisfied = rows
+        .iter()
+        .filter(|row| extracted.contains(&decode_file_name(&row.file)))
+        .count();
+    println!(
+        "Done, extracted {} files for {}/{} words",
+        extracted.len(),
+        words_satisfied,
+        rows.len()
+    );
+
+    write_found_list(output_csv, &rows, &extracted)?;
 
     Ok(())
 }
