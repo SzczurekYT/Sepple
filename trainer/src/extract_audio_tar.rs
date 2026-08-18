@@ -1,9 +1,4 @@
-use std::{
-    collections::HashSet,
-    fs::File,
-    io,
-    path::Path,
-};
+use std::{collections::HashSet, fs::File, io, path::Path};
 
 use indicatif::{ProgressBar, ProgressStyle};
 use percent_encoding::percent_decode_str;
@@ -15,7 +10,7 @@ pub fn extract_audio_tar(
     output_csv: &str,
 ) -> io::Result<()> {
     let rows = read_audio_list(list_file)?;
-    let wanted: HashSet<&str> = rows.iter().map(|row| row.file.as_str()).collect();
+    let wanted: HashSet<String> = rows.iter().map(|row| decode_file_name(&row.file)).collect();
     let total = wanted.len();
     let output_dir = Path::new(output_dir);
     std::fs::create_dir_all(output_dir)?;
@@ -44,18 +39,20 @@ pub fn extract_audio_tar(
             continue;
         }
 
-        let clean = percent_decode_str(rest).decode_utf8_lossy().into_owned();
+        let clean = decode_file_name(rest);
 
-        if wanted.contains(clean.as_str()) && !extracted.contains(&clean) {
-            extracted.insert(clean.clone());
-            let out_path = output_dir.join(&clean);
+        if let Some(key) = find_entry_for_tar_name(&clean, &wanted)
+            && !extracted.contains(&key)
+        {
+            extracted.insert(key.clone());
+            let out_path = output_dir.join(&key);
             if let Some(parent) = out_path.parent() {
                 std::fs::create_dir_all(parent)?;
             }
             let mut out = File::create(&out_path)?;
             io::copy(&mut entry, &mut out)?;
-            found.insert(clean.clone());
-            bar.set_message(clean);
+            found.insert(key.clone());
+            bar.set_message(key);
             bar.inc(1);
         }
     }
@@ -66,6 +63,32 @@ pub fn extract_audio_tar(
     write_found_list(output_csv, &rows, &found)?;
 
     Ok(())
+}
+
+/// Converts a name to its human readable
+/// form from what MediaWiki uses internally
+fn decode_file_name(name: &str) -> String {
+    percent_decode_str(name)
+        .decode_utf8_lossy()
+        .replace('_', " ")
+}
+
+/// Finds a matching entry in the list for a file name from tar
+/// accomodating for things like different extension suffixes due
+/// to transcoding
+fn find_entry_for_tar_name(tar_file_name: &str, wanted: &HashSet<String>) -> Option<String> {
+    if wanted.contains(tar_file_name) {
+        return Some(tar_file_name.to_owned());
+    }
+    for ext in [".ogg", ".mp3", ".oga"] {
+        if let Some(base) = tar_file_name.strip_suffix(ext) {
+            let stem = base.rsplit('/').next().unwrap_or(base);
+            if stem.contains('.') && wanted.contains(base) {
+                return Some(base.to_owned());
+            }
+        }
+    }
+    None
 }
 
 struct AudioRow {
@@ -108,8 +131,9 @@ fn write_found_list(
     let mut writer = csv::Writer::from_path(output_csv)?;
     writer.write_record(["word", "ipa", "file"])?;
     for row in rows {
-        if found.contains(&row.file) {
-            writer.write_record([&row.word, &row.ipa, &row.file])?;
+        let name = decode_file_name(&row.file);
+        if found.contains(&name) {
+            writer.write_record([&row.word, &row.ipa, &name])?;
         }
     }
     writer.flush()?;
