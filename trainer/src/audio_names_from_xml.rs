@@ -59,6 +59,7 @@ pub fn audio_names_from_xml(
                                 && !title.contains(':') // Skip helper pages (Wiktionary:, Template:, etc.)
                                 && let Some(audio) =
                                     Wikitext(&text_buf).extract_audio_url(lang, title)
+                                && !audio.is_empty()
                         {
                             result.insert(title.clone(), audio);
                             found += 1;
