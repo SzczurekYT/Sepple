@@ -54,8 +54,8 @@ pub fn audio_names_from_xml(
                     b"title" => in_title = false,
                     b"text" => {
                         in_text = false;
-                        if let Some(ref title) = current_title
-                            && dict.contains_key(&title.to_lowercase())
+                        if let Some(ref title) = current_title.as_deref().map(str::to_lowercase)
+                            && dict.contains_key(title)
                                 && !title.contains(':') // Skip helper pages (Wiktionary:, Template:, etc.)
                                 && let Some(audio) =
                                     Wikitext(&text_buf).extract_audio_url(lang, title)
@@ -99,7 +99,12 @@ pub fn audio_names_from_xml(
     let mut words: Vec<&String> = result.keys().collect();
     words.sort_unstable();
     for word in words {
-        writer.write_record([word, &dict[word], &result[word]])?;
+        writer.write_record([
+            word,
+            dict.get(word)
+                .unwrap_or_else(|| panic!("get thing for '{word}'")),
+            &result[word],
+        ])?;
     }
     writer.flush()?;
 

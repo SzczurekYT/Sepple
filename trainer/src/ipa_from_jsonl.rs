@@ -5,7 +5,7 @@ use std::{
 };
 
 pub fn convert_to_ipa_dictionary(input_file: &str, output_file: &str) -> io::Result<()> {
-    let mut result: HashMap<String, String> = HashMap::new();
+    let mut ipa_to_word: HashMap<String, String> = HashMap::new();
     let mut skipped = 0;
     for line in BufReader::new(File::open(input_file).unwrap()).lines() {
         let line = line?;
@@ -38,15 +38,21 @@ pub fn convert_to_ipa_dictionary(input_file: &str, output_file: &str) -> io::Res
             skipped += 1;
             continue;
         };
-        result.insert(word.to_owned(), ipa.to_owned());
+        ipa_to_word.insert(ipa.to_owned(), word.to_lowercase());
     }
 
     println!(
         "Done, skipped {skipped} entries out of {} due to missing IPA",
-        skipped + result.len()
+        skipped + ipa_to_word.len()
     );
 
-    serde_json::to_writer(File::create(output_file)?, &result)?;
+    // We create ipa_to_word to deduplicate by ipa, so now we need to reverse it
+    let word_to_ipa = ipa_to_word
+        .iter()
+        .map(|(ipa, word)| (word, ipa))
+        .collect::<HashMap<_, _>>();
+
+    serde_json::to_writer(File::create(output_file)?, &word_to_ipa)?;
 
     Ok(())
 }
