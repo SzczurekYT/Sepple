@@ -29,6 +29,7 @@
             pkg-config
             portaudio
             alsa-lib
+            openssl
           ];
 
           env = lib.optionalAttrs pkgs.stdenv.isLinux {

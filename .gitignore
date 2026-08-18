@@ -6,6 +6,7 @@
 
 /model/*.onnx
 /model/multipa_sim.bpk
+/training
 /target
 
 # IDE files
