@@ -1,3 +1,4 @@
+mod add_inferred_ipa;
 mod audio_names_from_xml;
 mod extract_audio_tar;
 mod ipa_from_jsonl;
@@ -44,6 +45,17 @@ enum Command {
         /// Filtered output csv file (found files only)
         output_csv: PathBuf,
     },
+    /// Writes the found audio list to a new csv, adding inferred IPA
+    AddInferredIpa {
+        /// Input csv file (filenames_found.csv)
+        input_file: PathBuf,
+        /// Output csv file (data.csv)
+        output_file: PathBuf,
+        /// Directory containing the audio files
+        audio_dir: PathBuf,
+        /// IPA model weights file
+        model_path: PathBuf,
+    },
 }
 
 fn main() {
@@ -86,6 +98,20 @@ fn main() {
                 &list_file.to_string_lossy(),
                 &output_dir.to_string_lossy(),
                 &output_csv.to_string_lossy(),
+            )
+            .unwrap();
+        }
+        Command::AddInferredIpa {
+            input_file,
+            output_file,
+            audio_dir,
+            model_path,
+        } => {
+            add_inferred_ipa::add_inferred_ipa(
+                &input_file.to_string_lossy(),
+                &output_file.to_string_lossy(),
+                &audio_dir.to_string_lossy(),
+                &model_path.to_string_lossy(),
             )
             .unwrap();
         }

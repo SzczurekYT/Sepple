@@ -7575,10 +7575,13 @@ version = "0.1.0"
 dependencies = [
  "clap",
  "csv",
+ "hound",
  "indicatif",
  "percent-encoding",
+ "phonetics-rs",
  "quick-xml",
  "regex",
+ "sepple",
  "serde_json",
  "tar",
 ]

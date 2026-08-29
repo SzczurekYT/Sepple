@@ -23,4 +23,9 @@ cargo run -r -p trainer ipa-from-jsonl kaikki.org-dictionary-Polish.jsonl ipa-di
 cargo run -r -p trainer audio-names-from-xml ipa-dictionary-pl.json enwiktionary-latest-pages-articles.xml filenames.csv Polish
 # Extract audio files (writes filenames_found.csv with word,ipa,file of extracted files only)
 cargo run -r -p trainer extract-audio-tar wiktionary-audios.tar filenames.csv audio_data filenames_found.csv
+# Runs the IPA model on each audio file and fills in inferred_ipa and ipa_distance,
+# requiring ffmpeg on PATH. Checkpoints every 10 generated rows; on interruption
+# rerun with the output file as input to resume where it left off (rows already
+# having both values are skipped).
+cargo run -r -p trainer add-inferred-ipa filenames_found.csv data.csv audio_data ../model/multipa_sim.bpk
 ```
