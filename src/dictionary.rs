@@ -6,6 +6,8 @@ use std::{
 use phonetics::confusion;
 use unicode_segmentation::{Graphemes, UnicodeSegmentation};
 
+use crate::error::{SeppleError, SeppleResult};
+
 const MAX_MISSING_CHARACTERS: usize = 3;
 
 const DEBUG_ENABLED: bool = false;
@@ -24,10 +26,19 @@ pub struct Dictionary {
 }
 
 impl Dictionary {
-    pub fn from_file(path: &str) -> Self {
-        let text = fs::read_to_string(path).unwrap_or_else(|_| panic!("Unable to read {path}"));
-        let words: Vec<String> = serde_json::from_str(&text).unwrap();
-        Self::from_vec(words)
+    pub fn from_file(path: &str) -> SeppleResult<Self> {
+        let text = fs::read_to_string(path).map_err(|err| SeppleError::FileLoad {
+            thing: "dictionary",
+            path: path.to_owned(),
+            error: err,
+        })?;
+        let words: Vec<String> =
+            serde_json::from_str(&text).map_err(|err| SeppleError::FileDeserialization {
+                thing: "dictionary",
+                path: path.to_owned(),
+                error: err,
+            })?;
+        Ok(Self::from_vec(words))
     }
 
     pub fn from_vec(words: Vec<String>) -> Self {

@@ -10,6 +10,7 @@ use sepple::{
     SeppleBackend,
     debug::audio_logger::AudioLogger,
     dictionary::Dictionary,
+    error::SeppleResult,
     ipa_recognizer::IpaRecognizer,
     pipeline::{
         Pipeline,
@@ -66,31 +67,38 @@ fn main() {
 
     set_debug(cli.verbose);
 
-    match cli.command {
+    let result = match cli.command {
         Command::File { file, silero } => {
             let input = &read_wav_to_f32(file);
             if !silero {
-                run_single(input);
+                run_single(input)
             } else {
                 run_single_silero(input);
+                Ok(())
             }
         }
         Command::Pipeline { file } => run_pipeline(file.map(read_wav_to_f32)),
+    };
+
+    if let Err(err) = result {
+        println!("Failed to run sepple, error:\n{err}");
     }
 }
 
-fn run_single(input: &[f32]) {
+fn run_single(input: &[f32]) -> SeppleResult<()> {
     println!("Loading model");
-    let recognizer = IpaRecognizer::<SeppleBackend>::init_default(MULTIPA_MODEL_PATH);
+    let recognizer = IpaRecognizer::<SeppleBackend>::init_default(MULTIPA_MODEL_PATH)?;
     println!("Load done");
     let result = recognizer.recognize(input);
     println!("Result: {result}");
     println!("Words: ");
-    let dict = Dictionary::from_file(DICTIONARY_PATH);
+    let dict = Dictionary::from_file(DICTIONARY_PATH).unwrap();
     let words = dict.find_words_in_string(&result).0;
     for word in words {
         println!("{word}");
     }
+
+    Ok(())
 }
 
 fn run_single_silero(input: &[f32]) {
@@ -107,7 +115,7 @@ fn run_single_silero(input: &[f32]) {
     save_f32_to_wav(&audio, "speech_probabilities.wav");
 }
 
-fn run_pipeline(input: Option<Vec<f32>>) {
+fn run_pipeline(input: Option<Vec<f32>>) -> SeppleResult<()> {
     let load_start = Instant::now();
     println!("Loading model");
     let sliding_window_config = SlidingWindowConfig {
@@ -116,8 +124,8 @@ fn run_pipeline(input: Option<Vec<f32>>) {
         cut_right: Duration::from_millis(150),
     };
     let vad_scorer = SileroVadScorer::init();
-    let ipa_processor = IpaProcessor::init(MULTIPA_MODEL_PATH, &sliding_window_config);
-    let word_detector = WordDetector::init(Dictionary::from_file(DICTIONARY_PATH));
+    let ipa_processor = IpaProcessor::init(MULTIPA_MODEL_PATH, &sliding_window_config)?;
+    let word_detector = WordDetector::init(Dictionary::from_file(DICTIONARY_PATH)?);
     println!(
         "Load done (took: {:.2?}), transcribing:",
         load_start.elapsed()
@@ -126,7 +134,7 @@ fn run_pipeline(input: Option<Vec<f32>>) {
     let pipeline = if let Some(input) = input {
         Pipeline::new(MemoryAudioSource::new(input))
     } else {
-        Pipeline::new(AudioCapture)
+        Pipeline::new(AudioCapture::new()?)
     };
 
     pipeline
@@ -144,4 +152,6 @@ fn run_pipeline(input: Option<Vec<f32>>) {
         .then(ipa_processor)
         .then(word_detector)
         .build_and_run(ValuePrinter::new());
+
+    Ok(())
 }

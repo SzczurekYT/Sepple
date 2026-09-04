@@ -14,6 +14,7 @@ use tokio::{
 
 use crate::{
     SeppleBackend, debug_enabled,
+    error::SeppleResult,
     ipa_recognizer::{IpaRecognizer, z_score_normalize},
     pipeline::{
         PipelineConsumer, PipelineProcessor, PipelineProducer,
@@ -34,17 +35,17 @@ pub struct IpaProcessor {
 }
 
 impl IpaProcessor {
-    pub fn init(model_path: &str, config: &SlidingWindowConfig) -> Self {
-        let recognizer = IpaRecognizer::init_default(model_path).into();
+    pub fn init(model_path: &str, config: &SlidingWindowConfig) -> SeppleResult<Self> {
+        let recognizer = IpaRecognizer::init_default(model_path)?.into();
         let notification = Arc::new(Notify::new());
         notification.notify_one();
-        Self {
+        Ok(Self {
             recognizer,
             notification,
             window_size: duration_to_sample_count(&config.window_size),
             cut_left_logits: duration_to_logit_count(config.cut_left),
             cut_right_logits: duration_to_logit_count(config.cut_right),
-        }
+        })
     }
 
     fn next_notification(&mut self) -> (Arc<Notify>, Arc<Notify>) {

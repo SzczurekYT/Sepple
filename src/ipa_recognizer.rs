@@ -2,8 +2,11 @@ use std::{collections::HashMap, fs};
 
 use burn::{Tensor, prelude::Backend, tensor::backend::BackendTypes};
 
+use burn_store::{BurnpackStore, ModuleSnapshot};
 use multipa_model::MultipaModel;
 use serde_json::Value;
+
+use crate::error::{SeppleError, SeppleResult};
 
 const PAD_TOKEN_ID: i32 = 310;
 const VOCAB_JSON: &str = include_str!("../model/vocab.json");
@@ -16,19 +19,29 @@ pub struct IpaRecognizer<B: Backend + BackendTypes> {
 }
 
 impl<B: Backend + BackendTypes> IpaRecognizer<B> {
-    pub fn init_default(model_path: &str) -> Self {
+    pub fn init_default(model_path: &str) -> SeppleResult<Self> {
         Self::init(model_path, PAD_TOKEN_ID, load_vocab_from_json(VOCAB_JSON))
     }
 
-    pub fn init(model_path: &str, padding_token_id: i32, vocab: HashMap<i32, String>) -> Self {
+    pub fn init(
+        model_path: &str,
+        padding_token_id: i32,
+        vocab: HashMap<i32, String>,
+    ) -> SeppleResult<Self> {
         let device = B::Device::default();
 
-        Self {
-            model: MultipaModel::from_file(model_path, &device),
+        let mut model = MultipaModel::new(&device);
+        let mut store = BurnpackStore::from_file(model_path);
+        model
+            .load_from(&mut store)
+            .map_err(SeppleError::MultipaModelLoad)?;
+
+        Ok(Self {
+            model,
             device,
             vocab,
             padding_token_id,
-        }
+        })
     }
 
     pub fn recognize(&self, input: &[f32]) -> String {

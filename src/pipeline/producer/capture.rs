@@ -1,15 +1,35 @@
 use std::sync::Arc;
 
-use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
+use cpal::{
+    Device,
+    traits::{DeviceTrait, HostTrait, StreamTrait},
+};
 use tokio::sync::{Notify, mpsc::Sender};
 
 use crate::{
+    error::{SeppleError, SeppleResult},
     pipeline::{PipelineProducer, PipelineSource},
     timestamped_vec::{self, TimestampedVec},
     units::{SAMPLE_DURATION, SAMPLE_RATE_U32, unix_timestamp_now},
 };
 
-pub struct AudioCapture;
+pub struct AudioCapture {
+    device: Device,
+}
+
+impl AudioCapture {
+    pub fn new() -> SeppleResult<Self> {
+        let host = cpal::default_host();
+        let Some(device) = host.default_input_device() else {
+            return Err(SeppleError::NoMicFound);
+        };
+        Ok(Self::from_device(device))
+    }
+
+    pub fn from_device(device: Device) -> Self {
+        Self { device }
+    }
+}
 
 impl PipelineProducer for AudioCapture {
     type Output = TimestampedVec<f32>;
@@ -25,11 +45,6 @@ impl PipelineSource for AudioCapture {
     }
 
     async fn run(&mut self, sender: Sender<Self::Output>) {
-        let host = cpal::default_host();
-        let device = host
-            .default_input_device()
-            .expect("No input device available");
-
         let config = cpal::StreamConfig {
             channels: 1,
             sample_rate: SAMPLE_RATE_U32,
@@ -40,7 +55,8 @@ impl PipelineSource for AudioCapture {
         let exit_notification2 = Arc::clone(&exit_notification);
         let exit_notification3 = Arc::clone(&exit_notification);
 
-        let stream = device
+        let stream = self
+            .device
             .build_input_stream(
                 &config,
                 move |data: &[i16], _: &cpal::InputCallbackInfo| {

@@ -5,6 +5,7 @@ pub mod pipeline;
 pub mod timestamped_vec;
 pub mod units;
 pub mod vad;
+pub mod error;
 
 use std::{
     path::Path,
