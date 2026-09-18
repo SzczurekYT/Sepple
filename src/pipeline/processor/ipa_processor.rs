@@ -1,5 +1,6 @@
 use std::{
     fmt::{self, Display},
+    path::Path,
     sync::Arc,
     time::Duration,
 };
@@ -35,7 +36,10 @@ pub struct IpaProcessor {
 }
 
 impl IpaProcessor {
-    pub fn init(model_path: &str, config: &SlidingWindowConfig) -> SeppleResult<Self> {
+    pub fn init<P>(model_path: P, config: &SlidingWindowConfig) -> SeppleResult<Self>
+    where
+        P: AsRef<Path>,
+    {
         let recognizer = IpaRecognizer::init_default(model_path)?.into();
         let notification = Arc::new(Notify::new());
         notification.notify_one();

@@ -12,6 +12,7 @@ use sepple::{
     dictionary::Dictionary,
     error::SeppleResult,
     ipa_recognizer::IpaRecognizer,
+    model_provider,
     pipeline::{
         Pipeline,
         consumer::value_printer::ValuePrinter,
@@ -30,7 +31,6 @@ use sepple::{
     vad::{self, Vad},
 };
 
-const MULTIPA_MODEL_PATH: &str = "./model/multipa_sim.bpk";
 pub const DICTIONARY_PATH: &str = "dictionary.json";
 
 #[derive(Parser)]
@@ -87,7 +87,8 @@ fn main() {
 
 fn run_single(input: &[f32]) -> SeppleResult<()> {
     println!("Loading model");
-    let recognizer = IpaRecognizer::<SeppleBackend>::init_default(MULTIPA_MODEL_PATH)?;
+    let model_path = model_provider::ensure_downloaded_and_get_path()?;
+    let recognizer = IpaRecognizer::<SeppleBackend>::init_default(model_path)?;
     println!("Load done");
     let result = recognizer.recognize(input);
     println!("Result: {result}");
@@ -118,13 +119,14 @@ fn run_single_silero(input: &[f32]) {
 fn run_pipeline(input: Option<Vec<f32>>) -> SeppleResult<()> {
     let load_start = Instant::now();
     println!("Loading model");
+    let model_path = model_provider::ensure_downloaded_and_get_path()?;
     let sliding_window_config = SlidingWindowConfig {
         window_size: Duration::from_millis(1000),
         cut_left: Duration::from_millis(150),
         cut_right: Duration::from_millis(150),
     };
     let vad_scorer = SileroVadScorer::init();
-    let ipa_processor = IpaProcessor::init(MULTIPA_MODEL_PATH, &sliding_window_config)?;
+    let ipa_processor = IpaProcessor::init(model_path, &sliding_window_config)?;
     let word_detector = WordDetector::init(Dictionary::from_file(DICTIONARY_PATH)?);
     println!(
         "Load done (took: {:.2?}), transcribing:",

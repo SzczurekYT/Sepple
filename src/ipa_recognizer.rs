@@ -1,4 +1,4 @@
-use std::{collections::HashMap, fs};
+use std::{collections::HashMap, fs, path::Path};
 
 use burn::{Tensor, prelude::Backend, tensor::backend::BackendTypes};
 
@@ -19,15 +19,21 @@ pub struct IpaRecognizer<B: Backend + BackendTypes> {
 }
 
 impl<B: Backend + BackendTypes> IpaRecognizer<B> {
-    pub fn init_default(model_path: &str) -> SeppleResult<Self> {
+    pub fn init_default<P>(model_path: P) -> SeppleResult<Self>
+    where
+        P: AsRef<Path>,
+    {
         Self::init(model_path, PAD_TOKEN_ID, load_vocab_from_json(VOCAB_JSON))
     }
 
-    pub fn init(
-        model_path: &str,
+    pub fn init<P>(
+        model_path: P,
         padding_token_id: i32,
         vocab: HashMap<i32, String>,
-    ) -> SeppleResult<Self> {
+    ) -> SeppleResult<Self>
+    where
+        P: AsRef<Path>,
+    {
         let device = B::Device::default();
 
         let mut model = MultipaModel::new(&device);

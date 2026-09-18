@@ -3,6 +3,8 @@ use std::io;
 use burn_store::BurnpackError;
 use thiserror::Error;
 
+use crate::model_provider::ModelSetupError;
+
 pub type SeppleResult<T> = Result<T, SeppleError>;
 
 #[derive(Debug, Error)]
@@ -21,6 +23,8 @@ pub enum SeppleError {
     },
     #[error("The system has no input audio devices. You need a microphone.")]
     NoMicFound,
-    #[error("Cannot load the multipa model, burnpack error occured\n{0}")]
+    #[error("Cannot load the speech recognition model, burnpack error occured\n{0}")]
     MultipaModelLoad(#[from] BurnpackError),
+    #[error("Model setup failed\n{0}")]
+    ModelSetup(#[from] ModelSetupError),
 }

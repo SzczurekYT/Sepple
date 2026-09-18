@@ -1,11 +1,12 @@
 pub mod debug;
 pub mod dictionary;
+pub mod error;
 pub mod ipa_recognizer;
+pub mod model_provider;
 pub mod pipeline;
 pub mod timestamped_vec;
 pub mod units;
 pub mod vad;
-pub mod error;
 
 use std::{
     path::Path,
