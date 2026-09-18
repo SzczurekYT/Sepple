@@ -41,7 +41,9 @@ impl<B: Backend> Vad<B> {
 
     pub fn process_audio(&mut self, audio: &[f32]) -> Vec<f32> {
         audio
-            .chunks_exact(CHUNK_SIZE)
+            .as_chunks::<CHUNK_SIZE>()
+            .0
+            .iter()
             .by_ref()
             .map(|chunk| self.process_chunk(chunk))
             .collect()
