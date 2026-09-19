@@ -86,8 +86,9 @@ fn main() {
 }
 
 fn run_single(input: &[f32]) -> SeppleResult<()> {
+    let reporter = model_provider::indicatif_progress_reporter();
+    let model_path = model_provider::ensure_downloaded_and_get_path(&reporter)?;
     println!("Loading model");
-    let model_path = model_provider::ensure_downloaded_and_get_path()?;
     let recognizer = IpaRecognizer::<SeppleBackend>::init_default(model_path)?;
     println!("Load done");
     let result = recognizer.recognize(input);
@@ -118,8 +119,9 @@ fn run_single_silero(input: &[f32]) {
 
 fn run_pipeline(input: Option<Vec<f32>>) -> SeppleResult<()> {
     let load_start = Instant::now();
+    let reporter = model_provider::indicatif_progress_reporter();
+    let model_path = model_provider::ensure_downloaded_and_get_path(&reporter)?;
     println!("Loading model");
-    let model_path = model_provider::ensure_downloaded_and_get_path()?;
     let sliding_window_config = SlidingWindowConfig {
         window_size: Duration::from_millis(1000),
         cut_left: Duration::from_millis(150),

@@ -6649,6 +6649,7 @@ dependencies = [
  "cpal",
  "directories",
  "hound",
+ "indicatif",
  "multipa-model",
  "phonetics-rs",
  "reqwest 0.13.4",

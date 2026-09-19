@@ -1,12 +1,13 @@
 use std::{
     fs::{self, File},
-    io::{self, Write},
+    io::{self, Read, Write},
     os::unix::fs::MetadataExt,
     path::{Path, PathBuf},
     time::Duration,
 };
 
 use directories::ProjectDirs;
+use indicatif::{ProgressBar, ProgressStyle};
 use reqwest::blocking::Client;
 use tempfile::Builder;
 use thiserror::Error;
@@ -23,6 +24,8 @@ pub enum ModelSetupError {
     DownloadSend(reqwest::Error),
     #[error("Failed to receive model download response.\n{0}")]
     DownloadReceive(reqwest::Error),
+    #[error("Failed to read downloaded model data.\n{0}")]
+    DownloadRead(io::Error),
     #[error("Failed to create file for saving model.\n{0}")]
     FileCreate(io::Error),
     #[error("Failed to write model data to file.\n{0}")]
@@ -38,7 +41,9 @@ const MODEL_FILE_NAME: &str = "multipa_model.bpk";
 const MODEL_SIZE_BYTES: u64 = 1263060956;
 pub const MODEL_SIZE: u32 = 10;
 
-pub fn ensure_downloaded_and_get_path() -> SeppleResult<PathBuf> {
+pub fn ensure_downloaded_and_get_path(
+    on_progress: &dyn Fn(u64, Option<u64>),
+) -> SeppleResult<PathBuf> {
     let path = get_model_path();
 
     if fs::exists(&path).unwrap_or(false) {
@@ -53,7 +58,7 @@ pub fn ensure_downloaded_and_get_path() -> SeppleResult<PathBuf> {
         return Ok(path);
     }
 
-    download_and_save_model(&path)?;
+    download_and_save_model(&path, on_progress)?;
 
     Ok(path)
 }
@@ -65,7 +70,10 @@ pub fn get_model_path() -> PathBuf {
     base_dir.cache_dir().to_path_buf().join(MODEL_FILE_NAME)
 }
 
-fn download_and_save_model(save_path: &Path) -> Result<(), ModelSetupError> {
+fn download_and_save_model(
+    save_path: &Path,
+    on_progress: &dyn Fn(u64, Option<u64>),
+) -> Result<(), ModelSetupError> {
     let tmp_dir = Builder::new()
         .prefix("sepple")
         .tempdir()
@@ -85,11 +93,24 @@ fn download_and_save_model(save_path: &Path) -> Result<(), ModelSetupError> {
         .get(MODEL_URL)
         .send()
         .map_err(ModelSetupError::DownloadSend)?;
-    let content = response.bytes().map_err(ModelSetupError::DownloadReceive)?;
 
+    let total_size = response.content_length();
+
+    let mut response = response;
     let mut dest = File::create(&path).map_err(ModelSetupError::FileCreate)?;
-    dest.write_all(&content)
-        .map_err(ModelSetupError::WriteFile)?;
+
+    let mut downloaded: u64 = 0;
+    let mut buf = [0u8; 8192];
+    loop {
+        let n = response.read(&mut buf).map_err(ModelSetupError::DownloadRead)?;
+        if n == 0 {
+            break;
+        }
+        dest.write_all(&buf[..n])
+            .map_err(ModelSetupError::WriteFile)?;
+        downloaded += n as u64;
+        on_progress(downloaded, total_size);
+    }
 
     fs::create_dir_all(save_path.parent().expect("file path to have a parent"))
         .map_err(ModelSetupError::CreateSaveDirectory)?;
@@ -98,4 +119,20 @@ fn download_and_save_model(save_path: &Path) -> Result<(), ModelSetupError> {
     fs::remove_file(&path).map_err(ModelSetupError::MoveToDestination)?;
 
     Ok(())
+}
+
+pub fn indicatif_progress_reporter() -> impl Fn(u64, Option<u64>) {
+    let pb = ProgressBar::new(0);
+    pb.set_style(
+        ProgressStyle::default_bar()
+            .template("{bytes}/{total_bytes} ({bytes_per_sec}) [{elapsed}] [{bar:40}]")
+            .unwrap()
+            .progress_chars("#>-"),
+    );
+    move |downloaded, total| {
+        if let Some(total) = total {
+            pb.set_length(total);
+        }
+        pb.set_position(downloaded);
+    }
 }
