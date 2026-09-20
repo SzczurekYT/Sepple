@@ -4,7 +4,7 @@ use burn::backend::Flex;
 use sepple::{ipa_recognizer::IpaRecognizer, read_wav_to_f32};
 use tokio::{runtime::Handle, sync::Semaphore, task::JoinSet};
 
-#[tokio::main]
+#[tokio::main(flavor = "current_thread")]
 async fn main() {
     let file = args().nth(1).expect("file");
     let total: usize = args().nth(1).expect("count").parse().expect("a number");

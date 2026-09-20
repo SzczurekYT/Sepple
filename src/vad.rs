@@ -1,6 +1,8 @@
 use bunsen::{
-    burner::tensor::TensorDataIndexView,
-    kits::speech::silero_vad::{SileroVad, SileroVadCollection, SileroVadContext, reference},
+    burner::tensor::TensorDataViewExt,
+    kits::speech::silero_vad::{
+        SileroVad, SileroVadCollection, SileroVadContext, pretrained::bundled,
+    },
 };
 use burn::{Tensor, prelude::Backend, tensor::backend::BackendTypes};
 
@@ -20,7 +22,7 @@ impl<B: Backend> Vad<B> {
         let device = B::Device::default();
 
         let vad = SileroVadCollection::load_from_burnpack_bytes(
-            reference::burnpack_as_burn_bytes(),
+            bundled::burnpack_as_burn_bytes(),
             &device,
         )
         .expect("Failed to load silero vad")
@@ -50,8 +52,8 @@ impl<B: Backend> Vad<B> {
     }
 
     pub fn process_chunk(&mut self, audio: &[f32]) -> f32 {
-        TensorDataIndexView::<f32>::view(&self.forward_chunk(audio).into_data().convert::<f32>())
-            [&[0]]
+        let data = self.forward_chunk(audio).into_data().convert::<f32>();
+        (&data.expect_index_view())[&[0]]
     }
 
     fn forward_chunk(&mut self, samples: &[f32]) -> Tensor<B, 1> {

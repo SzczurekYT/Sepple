@@ -58,7 +58,7 @@ impl PipelineSource for AudioCapture {
         let stream = self
             .device
             .build_input_stream(
-                &config,
+                config,
                 move |data: &[i16], _: &cpal::InputCallbackInfo| {
                     let timestamp = unix_timestamp_now() - SAMPLE_DURATION * data.len() as u32;
 
