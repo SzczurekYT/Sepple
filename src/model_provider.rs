@@ -1,7 +1,6 @@
 use std::{
     fs::{self, File},
     io::{self, Read, Write},
-    os::unix::fs::MetadataExt,
     path::{Path, PathBuf},
     time::Duration,
 };
@@ -51,7 +50,7 @@ pub fn ensure_downloaded_and_get_path(
     }
 
     let model_is_ok = fs::metadata(&path)
-        .map(|metadata| metadata.size() == MODEL_SIZE_BYTES)
+        .map(|metadata| metadata.len() == MODEL_SIZE_BYTES)
         .unwrap_or(false);
 
     if model_is_ok {
@@ -102,7 +101,9 @@ fn download_and_save_model(
     let mut downloaded: u64 = 0;
     let mut buf = [0u8; 8192];
     loop {
-        let n = response.read(&mut buf).map_err(ModelSetupError::DownloadRead)?;
+        let n = response
+            .read(&mut buf)
+            .map_err(ModelSetupError::DownloadRead)?;
         if n == 0 {
             break;
         }
