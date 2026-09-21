@@ -38,7 +38,7 @@ pub enum ModelSetupError {
 const MODEL_URL: &str = "https://huggingface.co/SzczurekYT/wav2vec2-large-xlsr-japlmthufielta-ipa1000-ns-bpk/resolve/main/multipa_sim.bpk";
 const MODEL_FILE_NAME: &str = "multipa_model.bpk";
 const MODEL_SIZE_BYTES: u64 = 1263060956;
-pub const MODEL_SIZE: u32 = 10;
+const MEGABYTE: usize = 1024 * 1024;
 
 pub fn ensure_downloaded_and_get_path(
     on_progress: &dyn Fn(u64, Option<u64>),
@@ -99,7 +99,7 @@ fn download_and_save_model(
     let mut dest = File::create(&path).map_err(ModelSetupError::FileCreate)?;
 
     let mut downloaded: u64 = 0;
-    let mut buf = [0u8; 8192];
+    let mut buf = [0u8; MEGABYTE];
     loop {
         let n = response
             .read(&mut buf)
