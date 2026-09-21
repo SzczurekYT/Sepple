@@ -99,7 +99,7 @@ fn download_and_save_model(
     let mut dest = File::create(&path).map_err(ModelSetupError::FileCreate)?;
 
     let mut downloaded: u64 = 0;
-    let mut buf = [0u8; MEGABYTE];
+    let mut buf = vec![0u8; MEGABYTE];
     loop {
         let n = response
             .read(&mut buf)
