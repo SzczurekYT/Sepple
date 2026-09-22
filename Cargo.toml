@@ -28,7 +28,6 @@ burn-store.workspace = true
 multipa-model = { path = "./multipa-model" }
 
 hound = "3.5.1"
-serde = { version = "1.0.220", features = ["derive"] }
 serde_json.workspace = true
 cpal = "0.18.2"
 unicode-segmentation = "1.13.3"
@@ -45,3 +44,6 @@ directories = "6.0.0"
 indicatif.workspace = true
 reqwest = { version = "0.13.5", features = ["blocking"] }
 tempfile = "3.27.0"
+
+[package.metadata.cargo-machete.renamed]
+phonetics-rs = "phonetics"
