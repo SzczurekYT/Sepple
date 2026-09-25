@@ -38,6 +38,7 @@ pub fn convert_to_ipa_dictionary(input_file: &str, output_file: &str) -> io::Res
             skipped += 1;
             continue;
         };
+        let ipa = ipa.replace(&['/', '.'][..], "");
         ipa_to_word.insert(ipa.to_owned(), word.to_lowercase());
     }
 
