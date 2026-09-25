@@ -15,7 +15,7 @@ pub fn add_inferred_ipa(
 
     println!("Loading model");
     let load_start = Instant::now();
-    
+
     let recognizer = IpaRecognizer::<SeppleBackend>::init_default(model_path).unwrap();
     println!("Load done (took: {:.2?})", load_start.elapsed());
 
