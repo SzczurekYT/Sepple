@@ -24,7 +24,7 @@ impl PipelineConsumer for AssertStringPrinter {
 
 impl PipelineSink for AssertStringPrinter {
     fn name() -> &'static str {
-        "ValuePrinter"
+        "AssertStringPrinter"
     }
 
     async fn consume_value(&mut self, value: String) -> () {
