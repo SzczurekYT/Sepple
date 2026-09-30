@@ -19,8 +19,8 @@ diagnostic on a fatal failure.
 
 ### Dependencies and features
 
-`tester/Cargo.toml` gains what `trainer` already has, keeping the three GUI deps
-untouched:
+`tester/Cargo.toml` gains `clap` and the `sepple` path dependency (as in `trainer`),
+plus a `wgpu` feature for `sepple` backend forwarding, and the three GUI deps:
 
 ```toml
 [features]
@@ -263,12 +263,9 @@ impl App {
   labels fit; whole numbers render without `.0` (`0`, `1`, `10`), fractional with one
   decimal (`0.5`, `2.5`).
 
-### Layout and API notes
+### Layout
 
 - Fixed layout, no scroll; window resizable, heights follow the weights.
-- eframe 0.36 corrections to point 1's written text: the trait method is
-  `fn ui(&mut self, ui, frame)` (not `update`), and the toolbar uses
-  `egui::Panel::top(...)` (not `TopPanel`) — fixed in this write.
 
 ## 4. Implement the shared x-view behavior
 
@@ -301,8 +298,8 @@ pub struct ViewState {
 
 - Initial: `center = 5.0`, `span = 10.0` (replaces point 3's hardcoded 0–10 s).
 - Frame loop in `App::ui()`:
-  1. `live_edge = raw.start + raw.samples.len() / 16000`; if `running`,
-     `view.center = live_edge − span / 2`.
+  1. `live_edge = raw.start + sepple::units::sample_count_to_duration(raw.samples.len())`;
+     if `running`, `view.center = live_edge − span / 2`.
   2. Push `view` x-bounds onto the **first-built** plot
      (`set_plot_bounds_x(center − span/2 ..= center + span/2)`).
   3. Show all nine plots (built-in gestures may modify bounds).
@@ -314,7 +311,8 @@ pub struct ViewState {
 
 ### Live edge (`gui.rs`)
 
-- `live_edge = raw.start + raw.samples.len() / 16000` — the raw track's last sample time.
+- `live_edge = raw.start + sepple::units::sample_count_to_duration(raw.samples.len())` —
+  the raw track's last sample time.
 - While running: `view.center = live_edge − span / 2` every frame → right edge is the
   live edge; the slider still works (`span` independent).
 - While stopped: no lock; the view stays where the user left it.
@@ -495,11 +493,11 @@ Plot::new("strip5").height(h).link_axis(/* ... */).show(ui, |plot_ui| {
         .map(|w| (w[1] - w[0]) * px_per_sec)
         .fold(f64::INFINITY, f64::min);
     if min_gap_px >= LABEL_MIN_GAP {
-        for (i, t) in timeline.tokens.iter().enumerate() {
-            let t = t.time.as_secs_f64();
+        for (i, tok) in timeline.tokens.iter().enumerate() {
+            let t = tok.time.as_secs_f64();
             if t < x_min || t > x_max { continue; }
             plot_ui.text(
-                Text::new(&format!("strip5_lbl_{i}"), PlotPoint::new(t, 0.5), &t.symbol)
+                Text::new(&format!("strip5_lbl_{i}"), PlotPoint::new(t, 0.5), &tok.symbol)
                     .color(TOKEN)
                     .anchor(Align2::CENTER_BOTTOM),
             );
