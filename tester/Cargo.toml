@@ -1,0 +1,14 @@
+[package]
+name = "tester"
+version.workspace = true
+edition.workspace = true
+
+[features]
+wgpu = ["sepple/wgpu"]
+
+[dependencies]
+clap.workspace = true
+sepple = { path = "../" }
+eframe = "0.36.2"
+egui_plot = "0.37.0"
+rfd = "0.17.2"
