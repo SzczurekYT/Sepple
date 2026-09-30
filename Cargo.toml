@@ -9,7 +9,7 @@ default-run = "sepple"
 wgpu = ["burn/wgpu"]
 
 [workspace]
-members = ["multipa-model", "trainer"]
+members = ["multipa-model", "tester", "trainer"]
 
 [workspace.package]
 version = "0.1.0"
