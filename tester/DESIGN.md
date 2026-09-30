@@ -56,8 +56,8 @@ A single window, default size ≈ 1280×800. From top to bottom:
   preview text).
 - **Eight strips**, stacked, all sharing the same horizontal time axis. Waveform strips
   are taller than event strips; heights are proportional, not equal.
-- **Time axis** at the bottom, showing absolute times; the right edge is the live edge
-  while running.
+- **Time axis** at the bottom, showing session-relative times (since the first
+  recorded event of the session); the right edge is the live edge while running.
 
 Default visible span is **10 seconds**, adjustable by zoom. All strips always show the
 same time range — the timeline is the backbone of the tool: one thing happens at one
@@ -103,12 +103,13 @@ incoming audio). The zoom control still works; pan and selection gestures are in
 
 **While stopped** (the inspection state):
 
-| Gesture        | Action                                                     |
-|----------------|------------------------------------------------------------|
-| Mouse wheel    | Zoom the time axis (all strips together)                   |
-| Right-drag     | Pan the timeline (all strips together)                     |
-| Left-drag      | Draw a selection over a time range — works on any strip    |
-| Left-click     | Clear the current selection                                |
+| Gesture          | Action                                                     |
+|------------------|------------------------------------------------------------|
+| Mouse wheel      | Pan the timeline (all strips together)                     |
+| Ctrl+Mouse wheel | Zoom the time axis (all strips together)                   |
+| Right-drag       | Pan the timeline (all strips together)                     |
+| Left-drag        | Draw a selection over a time range — works on any strip    |
+| Left-click       | Clear the current selection                                |
 
 **Selection** can be initiated on **any strip** — the time axis is shared, so the strip
 the drag starts on is irrelevant. The selection is drawn as a shaded vertical band
@@ -350,6 +351,11 @@ anyway) — required for selection/export. Display envelopes are derived from th
 samples for the visible range only. Event tracks (scores, tokens, snapshots, words)
 are tiny and kept whole.
 
+**Timeline origin.** All timestamps the GUI stores are session-relative: ingestion
+re-bases every event by the origin, defined as the stamp of the first event accepted
+after Start; Start (and its clear) resets the origin, so a new session always begins
+at 0. Live capture, file playback and mockup data all flow through the same rule.
+
 **Start/Stop path.** The GUI toggles a shared signal read by `SilenceGate`; the GUI-side
 freeze/clear is purely local. On Start, after clearing, any in-flight events stamped
 before the Start instant are discarded while draining, so pre-Stop leftovers can never
@@ -388,9 +394,10 @@ lanes can move to direct shape painting without changing any design decision.
 
 - **File mode (`-f`)** — identical features; file timestamps are only meaningful
   relative to each other (as elsewhere in the project), so the timeline is read
-  relative. The source runs faster than real time; the view follows the processing
-  head. When the file is exhausted the pipeline completes, the GUI stays open showing
-  the final timeline, and Start/Stop remain operable (no new data will arrive).
+  relative. The source is piped at real-time speed, so file mode's clock coincides
+  with the wall clock exactly like live capture; the view follows the live edge. When
+  the file is exhausted the pipeline completes, the GUI stays open showing the final
+  timeline, and Start/Stop remain operable (no new data will arrive).
 - **Stopped for a long time** — the pipeline consumes silence the whole time; nothing
   is recorded, so there is nothing to catch up on; Start clears and continues.
 - **Empty results** — windows that decode to no text, or passes that find no words,
