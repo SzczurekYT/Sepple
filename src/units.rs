@@ -9,6 +9,10 @@ pub const SAMPLE_DURATION: Duration = Duration::from_nanos_u128(
 pub const DOWNSAMPLE_RATE_F32: f32 = 320.0;
 pub const LOGITS_PER_SECOND: f32 = SAMPLE_RATE_F32 / DOWNSAMPLE_RATE_F32;
 
+pub fn sample_count_to_duration(count: usize) -> Duration {
+    Duration::from_secs_f32(count as f32 / SAMPLE_RATE_F32)
+}
+
 pub fn duration_to_sample_count(duration: &Duration) -> usize {
     (duration.as_secs_f32() * SAMPLE_RATE_F32).round() as usize
 }
