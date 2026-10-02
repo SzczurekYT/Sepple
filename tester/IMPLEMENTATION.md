@@ -106,7 +106,7 @@ GUI renders purely from this struct, no channels yet.
 ### Modules and responsibilities
 
 - **`gui/timeline_data.rs`** — `TimelineData`, `SessionConfig`, event structs,
-  ingest/clear API, raw-as-segments bridge.
+  ingest/clear API.
 - **`gui/mockup.rs`** — `impl TimelineData { pub fn mockup() -> Self }` only;
   scaffolding, removed once real feeds replace it.
 - **`gui.rs`** — App gains a `timeline: TimelineData` field initialized with
@@ -133,8 +133,8 @@ selection, running flag and dropped counter belong to the App itself.
 
 ```rust
 pub struct SessionConfig {
-    pub start_threshold: f32,   // 0.35
-    pub end_threshold: f32,     // 0.35
+    pub vad_start_threshold: f32,   // 0.35
+    pub vad_end_threshold: f32,     // 0.35
     pub window_size: Duration,  // 1000 ms
     pub cut_left: Duration,     // 150 ms
     pub cut_right: Duration,    // 150 ms
@@ -153,19 +153,17 @@ count from it. `Default` uses the numbers above.
 pub struct TimelineData {
     pub config: SessionConfig,
     origin: Option<Duration>,           // private; set by first rebased() call
-    pub raw: RawAudio,                  // strip 1
-    pub post_vad: Vec<Segment>,         // strip 2 — one per gate run, gaps = gate closed
-    pub scores: Vec<ScoreEvent>,        // strip 3
-    pub chunks: Vec<ChunkEvent>,        // strip 4
+    pub raw: AudioSegment,              // strip 1
+    pub post_vad: Vec<AudioSegment>,    // strip 2 — one per gate run, gaps = gate closed
+    pub vad_scores: Vec<VadScoreEvent>, // strip 3
+    pub chunks: Vec<AudioSegment>,      // strip 4
     pub tokens: Vec<TokenEvent>,        // strip 5 — flat, one per symbol
     pub snapshots: Vec<BufferSnapshot>, // strip 6
     pub words: Vec<WordEvent>,          // strips 7 + 8 — one feed serves both
 }
 
-pub struct RawAudio       { pub start: Duration, pub samples: Vec<f32> }  // dense, continuous
-pub struct Segment        { pub start: Duration, pub samples: Vec<f32> }
-pub struct ScoreEvent     { pub span: Range<Duration>, pub score: f32, pub gate_open: bool }
-pub struct ChunkEvent     { pub start: Duration, pub samples: Vec<f32> }
+pub struct AudioSegment   { pub start: Duration, pub samples: Vec<f32> }
+pub struct VadScoreEvent  { pub span: Range<Duration>, pub score: f32, pub gate_open: bool }
 pub struct TokenEvent     { pub time: Duration, pub symbol: String }
 pub struct BufferSnapshot { pub at: Duration, pub text: String }
 pub struct WordEvent      { pub word: String, pub span: Range<Duration>, pub detected_at: Duration }
@@ -174,10 +172,11 @@ pub struct WordEvent      { pub word: String, pub span: Range<Duration>, pub det
 - Event types are **tester-local** — no sepple types; payloads get converted at the
   ingest boundary.
 - Spans are **`Range<Duration>`** everywhere.
-- Raw is **dense** (`f32` + `start`, ≈23 MB/h); post-VAD is a **segment list**.
-  `RawAudio::iter()` yields a single `(start, &[f32])` pair so strips 1/2/4 chain it
-  with `post_vad` into one uniform code path.
-- API: per-track `push_*`, `rebased(stamp)`, `clear()` (keeps `config`), `Default` =
+- Raw is **dense** (`f32` + `start`, ≈23 MB/h); post-VAD is a **segment list**. All
+  three audio tracks (`raw`, `post_vad`, `chunks`) share the single `AudioSegment`
+  type.
+- API: per-track `push_*` taking the event structs — their timestamps are rebased
+  on ingestion — plus `rebased(stamp)`, `clear()` (keeps `config`), `Default` =
   empty tracks + default config.
 
 ### Mockup scenario (~12 s, deterministic, no RNG)
@@ -282,7 +281,7 @@ zooms, right-drag pans.
 | `gui.rs` | `struct ViewState { center: f64, span: f64 }` | new |
 | `gui.rs` | `App.view: ViewState` | new field |
 | `gui.rs` | `App::ui()` | frame loop: live-edge lock → push view → show plots → mirror bounds |
-| `gui.rs` | `fn live_edge(raw: &RawAudio) -> f64` | raw track's last sample time |
+| `gui.rs` | `fn live_edge(raw: &AudioSegment) -> f64` | raw track's last sample time |
 | `gui/toolbar.rs` | zoom slider | introduced here; binds to `app.view.span` |
 | `gui/plots.rs` | `Plots::render(app, ui)` | 8 strip plots; first-built gets the x push; each sets y per type; all get `link_axis` + `allow_*` |
 | `gui/time_axis.rs` | `TimeAxis::render(app, ui) -> PlotResponse<()>` | axis plot, same config; built last; its response feeds the mirror |
