@@ -48,3 +48,12 @@ tempfile = "3.27.0"
 
 [package.metadata.cargo-machete.renamed]
 phonetics-rs = "phonetics"
+
+# Latest unreleased egui has a layout fix for ComboBox
+[patch.crates-io]
+egui = { git = "https://github.com/emilk/egui", branch = "main" }
+egui-winit = { git = "https://github.com/emilk/egui", branch = "main" }
+egui-wgpu = { git = "https://github.com/emilk/egui", branch = "main" }
+egui_plot = { git = "https://github.com/emilk/egui_plot", branch = "main" }
+emath = { git = "https://github.com/emilk/egui", branch = "main" }
+eframe = { git = "https://github.com/emilk/egui", branch = "main" }
