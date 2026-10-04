@@ -1,4 +1,4 @@
-use eframe::egui::{self, Align, ComboBox, Layout};
+use eframe::egui::{Align, Button, ComboBox, Layout, Slider, Ui, Vec2};
 
 use super::App;
 
@@ -32,9 +32,9 @@ impl ExportSource {
     }
 }
 
-pub fn render(app: &mut App, ui: &mut egui::Ui) {
+pub fn render(app: &mut App, ui: &mut Ui) {
     ui.style_mut().spacing.item_spacing.x = 8.0;
-    ui.style_mut().spacing.button_padding = egui::vec2(12.0, 8.0);
+    ui.style_mut().spacing.button_padding = Vec2::new(12.0, 8.0);
     ui.horizontal_centered(|ui| {
         if ui.button("Start").clicked() {
             app.start();
@@ -55,7 +55,12 @@ pub fn render(app: &mut App, ui: &mut egui::Ui) {
                 });
 
             ui.label(app.export_source.preview().to_owned() + " from");
-            ui.add_enabled(false, egui::Button::new("Export"));
+            ui.add_enabled(false, Button::new("Export"));
+
+            ui.allocate_space(Vec2::new(25.0, 0.0));
+
+            ui.add(Slider::new(&mut app.view.span, 1.0..=60.0));
+            ui.label("zoom");
         });
     });
 }

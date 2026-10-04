@@ -1,30 +1,39 @@
 use std::ops::RangeInclusive;
 
 use eframe::egui::{self, Color32, Id, Ui};
-use egui_plot::{GridInput, GridMark, Plot, PlotBounds};
+use egui_plot::{GridInput, GridMark, Plot};
+
+use crate::gui::ViewState;
 
 pub const HEIGHT: f32 = 30.0;
 const TICK_STEPS: [f64; 10] = [0.1, 0.2, 0.5, 1.0, 2.0, 5.0, 10.0, 15.0, 30.0, 60.0];
 
-pub fn render(ui: &mut Ui, cursor_link_id: Id) {
-    ui.horizontal(|ui| {
-        ui.visuals_mut().extreme_bg_color = Color32::from_rgb(27, 27, 27);
-        Plot::new("time_axis")
-            .height(30.0)
-            .auto_bounds(egui::Vec2b::from(false))
-            .show_axes([true, false])
-            .show_grid([true, false])
-            .link_cursor(cursor_link_id, [true, false])
-            .allow_drag([false, false])
-            .allow_zoom(false)
-            .allow_boxed_zoom(false)
-            .allow_axis_zoom_drag(false)
-            .x_grid_spacer(time_grid_spacer)
-            .x_axis_formatter(format_tick)
-            .show(ui, |plot_ui| {
-                plot_ui.set_plot_bounds(PlotBounds::from_min_max([0.0, 0.0], [10.0, 1.0]));
-            });
-    });
+pub fn render(ui: &mut Ui, view: &mut ViewState, cursor_link_id: Id, axis_link_id: Id) {
+    let response = ui
+        .horizontal(|ui| {
+            ui.visuals_mut().extreme_bg_color = Color32::from_rgb(27, 27, 27);
+            Plot::new("time_axis")
+                .height(30.0)
+                .auto_bounds(egui::Vec2b::from(false))
+                .show_axes([true, false])
+                .show_grid([true, false])
+                .link_axis(axis_link_id, egui::Vec2b::new(true, false))
+                .link_cursor(cursor_link_id, [true, false])
+                .allow_drag([false, false])
+                .allow_zoom(false)
+                .allow_boxed_zoom(false)
+                .allow_axis_zoom_drag(false)
+                .x_grid_spacer(time_grid_spacer)
+                .x_axis_formatter(format_tick)
+                .show(ui, |plot_ui| {
+                    plot_ui.set_plot_bounds_y(0.0..=1.0);
+                })
+        })
+        .inner;
+
+    let bounds = response.transform.bounds();
+    view.center = (bounds.min()[0] + bounds.max()[0]) / 2.0;
+    view.span = bounds.max()[0] - bounds.min()[0];
 }
 
 fn tick_step(range: f64) -> f64 {
