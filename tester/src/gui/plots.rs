@@ -4,6 +4,7 @@ use eframe::egui::{self, Align, Color32, Grid, Id, Layout, Ui, Vec2, Vec2b};
 use egui_plot::{Plot, PlotUi};
 
 use crate::gui::chunk::render_sw_chunks;
+use crate::gui::delay::render_latency;
 use crate::gui::tokens::{render_buffer_snapshots, render_tokens, render_words};
 use crate::gui::vad::render_vad_state;
 use crate::gui::{time_axis, waveform};
@@ -31,7 +32,7 @@ const PLOT_FNS: [fn(&App, &mut PlotUi<'_>); 8] = [
     render_tokens,
     render_buffer_snapshots,
     render_words,
-    render_noop,
+    render_latency,
 ];
 
 fn y_bounds(index: usize) -> (f64, f64) {
@@ -105,8 +106,6 @@ pub fn render(app: &mut App, ui: &mut Ui) {
             ui.end_row();
         });
 }
-
-pub fn render_noop(_app: &App, _plot_ui: &mut PlotUi) {}
 
 pub fn render_raw_waveform(app: &App, plot_ui: &mut PlotUi) {
     waveform::draw(
