@@ -3,12 +3,12 @@ use std::ops::RangeInclusive;
 use eframe::egui::{self, Color32, Id, Ui};
 use egui_plot::{GridInput, GridMark, Plot};
 
-use crate::gui::ViewState;
+use crate::gui::App;
 
 pub const HEIGHT: f32 = 30.0;
 const TICK_STEPS: [f64; 10] = [0.1, 0.2, 0.5, 1.0, 2.0, 5.0, 10.0, 15.0, 30.0, 60.0];
 
-pub fn render(ui: &mut Ui, view: &mut ViewState, cursor_link_id: Id, axis_link_id: Id) {
+pub fn render(ui: &mut Ui, app: &mut App, cursor_link_id: Id, axis_link_id: Id) {
     let response = ui
         .horizontal(|ui| {
             ui.visuals_mut().extreme_bg_color = Color32::from_rgb(27, 27, 27);
@@ -32,8 +32,7 @@ pub fn render(ui: &mut Ui, view: &mut ViewState, cursor_link_id: Id, axis_link_i
         .inner;
 
     let bounds = response.transform.bounds();
-    view.center = (bounds.min()[0] + bounds.max()[0]) / 2.0;
-    view.span = bounds.max()[0] - bounds.min()[0];
+    app.set_view_bounds(bounds.min()[0], bounds.max()[0])
 }
 
 fn tick_step(range: f64) -> f64 {

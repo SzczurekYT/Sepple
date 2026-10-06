@@ -12,8 +12,11 @@ mod timeline_data;
 mod toolbar;
 
 use sepple::units::sample_count_to_duration;
-use timeline_data::{AudioSegment, TimelineData};
+use timeline_data::TimelineData;
 use toolbar::ExportSource;
+
+pub const LOOKAHEAD_VIEW_SPAN_FRACTION: f64 = 0.25;
+pub const MAX_SPAN: f64 = 60.0;
 
 pub fn run(file: Option<PathBuf>) -> Result<(), eframe::Error> {
     let options = eframe::NativeOptions {
@@ -33,23 +36,18 @@ pub fn run(file: Option<PathBuf>) -> Result<(), eframe::Error> {
                 dropped: 0,
                 export_source: ExportSource::Raw,
                 view: ViewState {
-                    center: 5.0,
-                    span: 10.0,
+                    start: 0.0,
+                    end: 10.0,
+                    target_span: 10.0,
                 },
             }))
         }),
     )
 }
 
-pub struct ViewState {
-    pub center: f64,
-    pub span: f64,
-}
-
 pub struct App {
     #[allow(dead_code)]
     file: Option<PathBuf>,
-    #[allow(dead_code)]
     timeline: TimelineData,
     running: bool,
     dropped: usize,
@@ -65,10 +63,33 @@ impl App {
     fn stop(&mut self) {
         self.running = false;
     }
-}
 
-fn live_edge(raw: &AudioSegment) -> f64 {
-    (raw.start + sample_count_to_duration(raw.samples.len())).as_secs_f64()
+    fn last_sample_x(&self) -> f64 {
+        let raw = &self.timeline.raw;
+        (raw.start + sample_count_to_duration(raw.samples.len())).as_secs_f64()
+    }
+
+    fn view_max_x(&self) -> f64 {
+        self.last_sample_x() + LOOKAHEAD_VIEW_SPAN_FRACTION * self.view.target_span
+    }
+
+    pub fn set_view_span(&mut self, new_span: f64) {
+        self.set_target_span(new_span);
+        let view_max_x = self.view_max_x();
+        self.view.set_span(new_span, view_max_x);
+    }
+
+    pub fn set_view_bounds(&mut self, new_start: f64, new_end: f64) {
+        self.set_target_span(new_end - new_start);
+        let view_max_x = self.view_max_x();
+        self.view.set_bounds(new_start, new_end, view_max_x);
+    }
+
+    pub fn set_target_span(&mut self, target_span: f64) {
+        self.view.target_span = target_span
+            .min(sample_count_to_duration(self.timeline.raw.samples.len()).as_secs_f64())
+            .min(MAX_SPAN)
+    }
 }
 
 impl eframe::App for App {
@@ -78,10 +99,47 @@ impl eframe::App for App {
         });
 
         if self.running {
-            let edge = live_edge(&self.timeline.raw);
-            self.view.center = edge - self.view.span / 2.0;
+            self.view.end = self.last_sample_x();
         }
 
         plots::render(self, ui);
+    }
+}
+
+pub struct ViewState {
+    pub start: f64,
+    pub end: f64,
+    target_span: f64,
+}
+
+impl ViewState {
+    pub fn span(&self) -> f64 {
+        self.end - self.start
+    }
+
+    fn set_span(&mut self, new_span: f64, view_max_x: f64) {
+        let old_span = self.span();
+        let edge_diff = (new_span - old_span) / 2.0;
+        self.set_bounds(self.start - edge_diff, self.end + edge_diff, view_max_x);
+    }
+
+    fn set_bounds(&mut self, new_start: f64, new_end: f64, view_max_x: f64) {
+        (self.start, self.end) = self.clamp_bounds(new_start, new_end, view_max_x);
+    }
+
+    fn clamp_bounds(&self, mut new_start: f64, mut new_end: f64, view_max_x: f64) -> (f64, f64) {
+        if new_end > view_max_x {
+            new_start -= new_end - view_max_x;
+            new_start = new_start.max(0.0);
+            new_end = view_max_x;
+        }
+
+        if new_start < 0.0 {
+            new_end -= new_start;
+            new_end = new_end.min(view_max_x);
+            new_start = 0.0;
+        }
+
+        (new_start, new_end)
     }
 }

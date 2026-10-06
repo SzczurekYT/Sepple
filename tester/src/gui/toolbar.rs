@@ -59,7 +59,13 @@ pub fn render(app: &mut App, ui: &mut Ui) {
 
             ui.allocate_space(Vec2::new(25.0, 0.0));
 
-            ui.add(Slider::new(&mut app.view.span, 1.0..=60.0));
+            let mut span = app.view.span();
+            let span_max = app.view_max_x();
+            let slider_response = ui.add(Slider::new(&mut span, 1.0..=span_max));
+            if slider_response.changed() {
+                app.set_view_span(span);
+            }
+
             ui.label("zoom");
         });
     });
