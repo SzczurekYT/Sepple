@@ -3,6 +3,7 @@ use std::iter;
 use eframe::egui::{self, Align, Grid, Id, Layout, Ui, Vec2, Vec2b};
 use egui_plot::{Plot, PlotUi};
 
+use crate::gui::vad::render_vad_state;
 use crate::gui::{time_axis, waveform};
 
 use super::App;
@@ -22,7 +23,7 @@ const LABELS: [&str; 8] = [
 const PLOT_FNS: [fn(&App, &mut PlotUi<'_>); 8] = [
     render_raw_waveform,
     render_post_vad_waveform,
-    render_noop,
+    render_vad_state,
     render_noop,
     render_noop,
     render_noop,
