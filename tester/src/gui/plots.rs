@@ -46,8 +46,6 @@ pub fn render(app: &mut App, ui: &mut Ui) {
 
     let plot_cursor_link = ui.make_persistent_id("plot_strips");
     let time_link = ui.make_persistent_id("time_link");
-    let x_min = app.view.center - app.view.span / 2.0;
-    let x_max = app.view.center + app.view.span / 2.0;
 
     ui.allocate_space(Vec2::new(0.0, PLOT_PADDING));
 
@@ -72,7 +70,7 @@ pub fn render(app: &mut App, ui: &mut Ui) {
                     )
                     .show(ui, |plot_ui| {
                         if i == 0 {
-                            plot_ui.set_plot_bounds_x(x_min..=x_max);
+                            plot_ui.set_plot_bounds_x(app.view.start..=app.view.end);
                         }
                         let (y_min, y_max) = y_bounds(i);
                         plot_ui.set_plot_bounds_y(y_min..=y_max);
@@ -84,7 +82,7 @@ pub fn render(app: &mut App, ui: &mut Ui) {
             ui.allocate_space(Vec2::new(1.0, 1.0));
             ui.with_layout(Layout::right_to_left(Align::Min), |ui| {
                 ui.allocate_space(Vec2::new(PLOT_PADDING, 0.0));
-                time_axis::render(ui, &mut app.view, plot_cursor_link, time_link)
+                time_axis::render(ui, app, plot_cursor_link, time_link)
             });
             ui.end_row();
         });
