@@ -4,7 +4,7 @@ use eframe::egui::{self, Align, Color32, Grid, Id, Layout, Ui, Vec2, Vec2b};
 use egui_plot::{Plot, PlotUi};
 
 use crate::gui::chunk::render_sw_chunks;
-use crate::gui::tokens::render_tokens;
+use crate::gui::tokens::{render_buffer_snapshots, render_tokens, render_words};
 use crate::gui::vad::render_vad_state;
 use crate::gui::{time_axis, waveform};
 
@@ -29,8 +29,8 @@ const PLOT_FNS: [fn(&App, &mut PlotUi<'_>); 8] = [
     render_vad_state,
     render_sw_chunks,
     render_tokens,
-    render_noop,
-    render_noop,
+    render_buffer_snapshots,
+    render_words,
     render_noop,
 ];
 
