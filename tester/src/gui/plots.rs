@@ -1,7 +1,9 @@
-use eframe::egui::{self, Align, Grid, Id, Layout, Ui, Vec2, Vec2b};
-use egui_plot::Plot;
+use std::iter;
 
-use crate::gui::time_axis;
+use eframe::egui::{self, Align, Color32, Grid, Id, Layout, Stroke, Ui, Vec2, Vec2b};
+use egui_plot::{Plot, PlotUi};
+
+use crate::gui::{time_axis, waveform};
 
 use super::App;
 
@@ -16,6 +18,16 @@ const LABELS: [&str; 8] = [
     "Buffer",
     "Words",
     "Latency",
+];
+const PLOT_FNS: [fn(&App, &mut PlotUi<'_>); 8] = [
+    render_raw_waveform,
+    render_noop,
+    render_noop,
+    render_noop,
+    render_noop,
+    render_noop,
+    render_noop,
+    render_noop,
 ];
 
 fn y_bounds(index: usize) -> (f64, f64) {
@@ -74,6 +86,8 @@ pub fn render(app: &mut App, ui: &mut Ui) {
                         }
                         let (y_min, y_max) = y_bounds(i);
                         plot_ui.set_plot_bounds_y(y_min..=y_max);
+
+                        (PLOT_FNS[i])(app, plot_ui);
                     });
                 });
                 ui.end_row();
@@ -86,4 +100,22 @@ pub fn render(app: &mut App, ui: &mut Ui) {
             });
             ui.end_row();
         });
+}
+
+pub fn render_noop(_app: &App, _plot_ui: &mut PlotUi) {}
+
+const RAW_FILL_COLOR: Color32 = Color32::from_rgba_premultiplied(100, 160, 255, 70);
+const RAW_STROKE_COLOR: Color32 = Color32::from_rgb(100, 160, 255);
+
+pub fn render_raw_waveform(app: &App, plot_ui: &mut PlotUi) {
+    waveform::draw(
+        app,
+        plot_ui,
+        iter::once((app.timeline.raw.start, app.timeline.raw.samples.as_slice())),
+        "raw",
+        0.0,
+        1.0,
+        RAW_FILL_COLOR,
+        Stroke::new(1.0, RAW_STROKE_COLOR),
+    );
 }
