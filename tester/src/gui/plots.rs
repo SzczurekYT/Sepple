@@ -1,6 +1,6 @@
 use std::iter;
 
-use eframe::egui::{self, Align, Color32, Grid, Id, Layout, Stroke, Ui, Vec2, Vec2b};
+use eframe::egui::{self, Align, Grid, Id, Layout, Ui, Vec2, Vec2b};
 use egui_plot::{Plot, PlotUi};
 
 use crate::gui::{time_axis, waveform};
@@ -104,9 +104,6 @@ pub fn render(app: &mut App, ui: &mut Ui) {
 
 pub fn render_noop(_app: &App, _plot_ui: &mut PlotUi) {}
 
-const RAW_FILL_COLOR: Color32 = Color32::from_rgba_premultiplied(100, 160, 255, 70);
-const RAW_STROKE_COLOR: Color32 = Color32::from_rgb(100, 160, 255);
-
 pub fn render_raw_waveform(app: &App, plot_ui: &mut PlotUi) {
     waveform::draw(
         app,
@@ -115,7 +112,5 @@ pub fn render_raw_waveform(app: &App, plot_ui: &mut PlotUi) {
         "raw",
         0.0,
         1.0,
-        RAW_FILL_COLOR,
-        Stroke::new(1.0, RAW_STROKE_COLOR),
     );
 }
