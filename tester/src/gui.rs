@@ -10,6 +10,7 @@ mod plots;
 mod time_axis;
 mod timeline_data;
 mod toolbar;
+mod waveform;
 
 use sepple::units::sample_count_to_duration;
 use timeline_data::TimelineData;
