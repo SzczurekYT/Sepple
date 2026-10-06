@@ -14,6 +14,7 @@ mod mockup;
 mod plots;
 mod time_axis;
 mod timeline_data;
+mod tokens;
 mod toolbar;
 mod vad;
 mod waveform;
