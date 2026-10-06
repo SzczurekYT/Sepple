@@ -21,7 +21,7 @@ const LABELS: [&str; 8] = [
 ];
 const PLOT_FNS: [fn(&App, &mut PlotUi<'_>); 8] = [
     render_raw_waveform,
-    render_noop,
+    render_post_vad_waveform,
     render_noop,
     render_noop,
     render_noop,
@@ -110,6 +110,20 @@ pub fn render_raw_waveform(app: &App, plot_ui: &mut PlotUi) {
         plot_ui,
         iter::once((app.timeline.raw.start, app.timeline.raw.samples.as_slice())),
         "raw",
+        0.0,
+        1.0,
+    );
+}
+
+pub fn render_post_vad_waveform(app: &App, plot_ui: &mut PlotUi) {
+    waveform::draw(
+        app,
+        plot_ui,
+        app.timeline
+            .post_vad
+            .iter()
+            .map(|segment| (segment.start, segment.samples.as_slice())),
+        "post_vad",
         0.0,
         1.0,
     );
