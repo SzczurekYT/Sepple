@@ -1,8 +1,9 @@
 use std::iter;
 
-use eframe::egui::{self, Align, Grid, Id, Layout, Ui, Vec2, Vec2b};
+use eframe::egui::{self, Align, Color32, Grid, Id, Layout, Ui, Vec2, Vec2b};
 use egui_plot::{Plot, PlotUi};
 
+use crate::gui::chunk::render_sw_chunks;
 use crate::gui::vad::render_vad_state;
 use crate::gui::{time_axis, waveform};
 
@@ -20,11 +21,12 @@ const LABELS: [&str; 8] = [
     "Words",
     "Latency",
 ];
+pub const CUT_BORDER_COLOR: Color32 = Color32::from_rgba_unmultiplied_const(255, 255, 255, 40);
 const PLOT_FNS: [fn(&App, &mut PlotUi<'_>); 8] = [
     render_raw_waveform,
     render_post_vad_waveform,
     render_vad_state,
-    render_noop,
+    render_sw_chunks,
     render_noop,
     render_noop,
     render_noop,
