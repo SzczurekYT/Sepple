@@ -10,6 +10,7 @@ use timeline_data::TimelineData;
 use toolbar::ExportSource;
 
 mod chunk;
+mod delay;
 mod mockup;
 mod plots;
 mod time_axis;
