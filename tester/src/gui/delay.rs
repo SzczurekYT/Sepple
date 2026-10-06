@@ -1,5 +1,5 @@
 use eframe::egui::Color32;
-use egui_plot::{Line, PlotUi, Points};
+use egui_plot::{HoverPosition, Line, Plot, PlotUi, Points};
 
 use super::App;
 
@@ -48,4 +48,26 @@ pub fn render_latency(app: &App, plot_ui: &mut PlotUi) {
                 .color(LATENCY_COLOR),
         );
     }
+}
+
+pub fn modify_latency_plot<'a>(app: &'a App, plot: Plot<'a>) -> Plot<'a> {
+    plot.label_formatter(|hover| match hover {
+        HoverPosition::NearDataPoint {
+            plot_name,
+            position,
+            ..
+        } if !plot_name.is_empty() => {
+            for word in &app.timeline.words {
+                if (word.detected_at.as_secs_f64() - position.x).abs() < 0.1 {
+                    return Some(format!(
+                        "Latency: {:.2}",
+                        word.detected_at.saturating_sub(word.span.end).as_secs_f64()
+                    ));
+                }
+            }
+            None
+        }
+        _ => None,
+    })
+    .show_grid([false, true])
 }
