@@ -3,13 +3,16 @@ use std::iter;
 use eframe::egui::{self, Align, Color32, Grid, Id, Layout, Ui, Vec2, Vec2b};
 use egui_plot::{Plot, PlotUi};
 
-use crate::gui::chunk::render_sw_chunks;
-use crate::gui::delay::render_latency;
 use crate::gui::tokens::{render_buffer_snapshots, render_tokens, render_words};
 use crate::gui::vad::render_vad_state;
+use crate::gui::{chunk::render_sw_chunks, delay::modify_latency_plot};
+use crate::gui::{delay::render_latency, vad::modify_vad_plot};
 use crate::gui::{time_axis, waveform};
 
 use super::App;
+
+type PlotRenderer = fn(&App, &mut PlotUi<'_>);
+type PlotModifier = for<'a> fn(&'a App, Plot<'a>) -> Plot<'a>;
 
 const PLOT_PADDING: f32 = 8.0;
 const WEIGHTS: [f32; 8] = [4.0, 4.0, 2.0, 4.0, 1.0, 1.0, 1.0, 2.0];
@@ -24,7 +27,7 @@ const LABELS: [&str; 8] = [
     "Latency",
 ];
 pub const CUT_BORDER_COLOR: Color32 = Color32::from_rgba_unmultiplied_const(255, 255, 255, 40);
-const PLOT_FNS: [fn(&App, &mut PlotUi<'_>); 8] = [
+const PLOT_FNS: [PlotRenderer; 8] = [
     render_raw_waveform,
     render_post_vad_waveform,
     render_vad_state,
@@ -34,6 +37,16 @@ const PLOT_FNS: [fn(&App, &mut PlotUi<'_>); 8] = [
     render_words,
     render_latency,
 ];
+const PLOT_MODIFIERS: [Option<PlotModifier>; 8] = [
+    None,
+    None,
+    Some(modify_vad_plot),
+    None,
+    None,
+    None,
+    None,
+    Some(modify_latency_plot),
+];
 
 fn y_bounds(index: usize) -> (f64, f64) {
     match index {
@@ -42,7 +55,7 @@ fn y_bounds(index: usize) -> (f64, f64) {
     }
 }
 
-fn base_plot(id: &str, running: bool, height: f32, cursor_link: Id, axis_link: Id) -> Plot<'_> {
+fn base_plot<'a>(id: &str, running: bool, height: f32, cursor_link: Id, axis_link: Id) -> Plot<'a> {
     Plot::new(id)
         .height(height)
         .link_axis(axis_link, Vec2b::new(true, false))
@@ -76,16 +89,22 @@ pub fn render(app: &mut App, ui: &mut Ui) {
                     ui.label(LABELS[i]);
                     ui.allocate_space(Vec2::new(PLOT_PADDING, 0.0));
                 });
+
                 ui.with_layout(Layout::right_to_left(Align::Min), |ui| {
                     ui.allocate_space(Vec2::new(PLOT_PADDING, 0.0));
-                    base_plot(
+                    let mut plot = base_plot(
                         &format!("strip{}", i + 1),
                         app.running,
                         height,
                         plot_cursor_link,
                         time_link,
-                    )
-                    .show(ui, |plot_ui| {
+                    );
+
+                    if let Some(modifier) = PLOT_MODIFIERS[i] {
+                        plot = (modifier)(app, plot);
+                    };
+
+                    plot.show(ui, |plot_ui| {
                         if i == 0 {
                             plot_ui.set_plot_bounds_x(app.view.start..=app.view.end);
                         }

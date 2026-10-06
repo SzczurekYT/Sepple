@@ -1,5 +1,5 @@
 use eframe::egui::Color32;
-use egui_plot::{FilledArea, HLine, Line, PlotUi};
+use egui_plot::{FilledArea, HLine, HoverPosition, Line, Plot, PlotUi};
 
 use crate::gui::timeline_data::VadScoreEvent;
 
@@ -77,4 +77,23 @@ fn gate_open_segments(scores: &[VadScoreEvent]) -> Vec<(usize, usize)> {
         runs.push((start, scores.len() - 1));
     }
     runs
+}
+
+pub fn modify_vad_plot<'a>(app: &'a App, plot: Plot<'a>) -> Plot<'a> {
+    plot.label_formatter(|hover| match hover {
+        HoverPosition::NearDataPoint {
+            plot_name,
+            position,
+            ..
+        } if !plot_name.is_empty() => {
+            for vad_event in &app.timeline.vad_scores {
+                if (vad_event.span.start.as_secs_f64() - position.x).abs() < 0.1 {
+                    return Some(format!("Score: {:.2}", vad_event.score));
+                }
+            }
+            None
+        }
+        _ => None,
+    })
+    .show_grid([false, true])
 }
