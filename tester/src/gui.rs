@@ -4,7 +4,12 @@ use eframe::{
     Frame,
     egui::{self, Panel, Ui},
 };
+use sepple::units::sample_count_to_duration;
 
+use timeline_data::TimelineData;
+use toolbar::ExportSource;
+
+mod chunk;
 mod mockup;
 mod plots;
 mod time_axis;
@@ -12,10 +17,6 @@ mod timeline_data;
 mod toolbar;
 mod vad;
 mod waveform;
-
-use sepple::units::sample_count_to_duration;
-use timeline_data::TimelineData;
-use toolbar::ExportSource;
 
 pub const LOOKAHEAD_VIEW_SPAN_FRACTION: f64 = 0.25;
 pub const MAX_SPAN: f64 = 60.0;
