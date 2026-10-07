@@ -1,6 +1,8 @@
 use eframe::egui::{Align, Button, ComboBox, Layout, Slider, Ui, Vec2};
+use rfd::FileDialog;
 
 use super::App;
+use super::export;
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum ExportSource {
@@ -21,13 +23,6 @@ impl ExportSource {
             ExportSource::Raw => "Raw",
             ExportSource::PostVad => "Post-VAD",
             ExportSource::SwChunks => "SW chunks",
-        }
-    }
-
-    pub fn preview(self) -> &'static str {
-        match self {
-            ExportSource::Raw => "selected range",
-            ExportSource::PostVad | ExportSource::SwChunks => "N chunks",
         }
     }
 }
@@ -54,8 +49,24 @@ pub fn render(app: &mut App, ui: &mut Ui) {
                     }
                 });
 
-            ui.label(app.export_source.preview().to_owned() + " from");
-            ui.add_enabled(false, Button::new("Export"));
+            let preview = match app.export_source {
+                ExportSource::Raw => "selected range".to_owned(),
+                ExportSource::PostVad | ExportSource::SwChunks => {
+                    format!("{} chunks", export::export_count(app).unwrap_or(0))
+                }
+            };
+            ui.label(format!("{preview} from"));
+
+            let can_export = !app.running && app.selection.is_some();
+            if ui.add_enabled(can_export, Button::new("Export")).clicked() {
+                let path = FileDialog::new()
+                    .set_file_name("exported.wav")
+                    .add_filter("Wav", &["wav"])
+                    .save_file();
+                if let Some(path) = path {
+                    export::export(app, &path);
+                }
+            }
 
             ui.allocate_space(Vec2::new(25.0, 0.0));
 

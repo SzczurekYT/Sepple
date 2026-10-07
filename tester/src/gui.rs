@@ -11,6 +11,7 @@ use toolbar::ExportSource;
 
 mod chunk;
 mod delay;
+mod export;
 mod mockup;
 mod plots;
 mod time_axis;
