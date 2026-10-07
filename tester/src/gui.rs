@@ -66,6 +66,8 @@ pub struct App {
 impl App {
     fn start(&mut self) {
         self.running = true;
+        self.timeline.clear();
+        self.selection = None;
     }
 
     fn stop(&mut self) {
