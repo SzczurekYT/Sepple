@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::{ops::Range, path::PathBuf};
 
 use eframe::{
     Frame,
@@ -45,6 +45,7 @@ pub fn run(file: Option<PathBuf>) -> Result<(), eframe::Error> {
                     end: 10.0,
                     target_span: 10.0,
                 },
+                selection: None,
             }))
         }),
     )
@@ -58,6 +59,7 @@ pub struct App {
     dropped: usize,
     export_source: ExportSource,
     view: ViewState,
+    selection: Option<Range<f64>>,
 }
 
 impl App {

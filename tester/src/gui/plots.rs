@@ -1,7 +1,7 @@
 use std::iter;
 
-use eframe::egui::{self, Align, Color32, Grid, Id, Layout, Ui, Vec2, Vec2b};
-use egui_plot::{Plot, PlotUi};
+use eframe::egui::{Align, Color32, Grid, Id, Layout, PointerButton, Ui, Vec2, Vec2b};
+use egui_plot::{FilledArea, Plot, PlotResponse, PlotUi};
 
 use crate::gui::tokens::{render_buffer_snapshots, render_tokens, render_words};
 use crate::gui::vad::render_vad_state;
@@ -27,6 +27,7 @@ const LABELS: [&str; 8] = [
     "Latency",
 ];
 pub const CUT_BORDER_COLOR: Color32 = Color32::from_rgba_unmultiplied_const(255, 255, 255, 40);
+pub const SELECTION_COLOR: Color32 = Color32::from_rgba_unmultiplied_const(255, 255, 255, 60);
 const PLOT_FNS: [PlotRenderer; 8] = [
     render_raw_waveform,
     render_post_vad_waveform,
@@ -66,8 +67,53 @@ fn base_plot<'a>(id: &str, running: bool, height: f32, cursor_link: Id, axis_lin
         .allow_drag(Vec2b::new(!running, false))
         .allow_scroll(Vec2b::new(!running, false))
         .allow_zoom(Vec2b::new(true, false))
-        .pan_pointer_button(egui::PointerButton::Secondary)
+        .pan_pointer_button(PointerButton::Secondary)
         .link_cursor(cursor_link, [true, false])
+}
+
+fn update_selection(app: &mut App, response: &PlotResponse<()>) {
+    if app.running {
+        return;
+    }
+    let Some(pointer) = response.response.interact_pointer_pos() else {
+        return;
+    };
+    let x = response.transform.value_from_position(pointer).x;
+    let response = &response.response;
+    if response.drag_started_by(PointerButton::Primary) {
+        app.selection = Some(x..x);
+    } else if response.dragged_by(PointerButton::Primary) {
+        if let Some(sel) = &mut app.selection {
+            sel.end = x;
+        }
+    } else if response.drag_stopped() {
+        if let Some(sel) = &app.selection {
+            let (start, end) = (sel.start.min(sel.end), sel.start.max(sel.end));
+            app.selection = Some(start..end);
+        }
+    } else if response.clicked() {
+        app.selection = None;
+    }
+}
+
+fn draw_selection_band(app: &App, plot_ui: &mut PlotUi) {
+    let Some(sel) = &app.selection else {
+        return;
+    };
+    if sel.end <= sel.start {
+        return;
+    }
+    // Using f64::MIN/MAX does not work for some reason (nothing renders)
+    // So we just use big numbers
+    plot_ui.add(
+        FilledArea::new(
+            "selection_band",
+            &[sel.start, sel.end],
+            &[-1_000_000_000.0, -1_000_000_000.0],
+            &[1_000_000_000.0, 1_000_000_000.0],
+        )
+        .fill_color(SELECTION_COLOR),
+    );
 }
 
 pub fn render(app: &mut App, ui: &mut Ui) {
@@ -104,7 +150,7 @@ pub fn render(app: &mut App, ui: &mut Ui) {
                         plot = (modifier)(app, plot);
                     };
 
-                    plot.show(ui, |plot_ui| {
+                    let response = plot.show(ui, |plot_ui| {
                         if i == 0 {
                             plot_ui.set_plot_bounds_x(app.view.start..=app.view.end);
                         }
@@ -112,7 +158,9 @@ pub fn render(app: &mut App, ui: &mut Ui) {
                         plot_ui.set_plot_bounds_y(y_min..=y_max);
 
                         (PLOT_FNS[i])(app, plot_ui);
+                        draw_selection_band(app, plot_ui);
                     });
+                    update_selection(app, &response);
                 });
                 ui.end_row();
             }
