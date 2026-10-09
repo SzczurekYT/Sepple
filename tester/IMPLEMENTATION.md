@@ -703,30 +703,144 @@ impl App {
 
 # Phase 2 — sepple modified for sourcing
 
-16. Add the two additive getters to `sepple`: `VadFilter::is_talking()` for the gate
-    band (strip 3) and `WordDetector::buffer()` for snapshots (strip 6).
-17. Upgrade the data shapes: make `WordDetector` emit
-    `DetectedWord { word, audio_span, detected_at }` with `Display` staying
-    byte-identical, and give `TimestampedText` frame-derived per-symbol times produced
-    inside `IpaProcessor`.
+## 16. Add the two additive getters to `sepple`
+
+Add `VadFilter::is_talking(&self) -> bool` (returns `self.is_talking`) and
+`WordDetector::buffer(&self) -> &str` (returns `&self.text_buffer`) — pure additions, no
+behavior change.
+## 17. Upgrade the data shapes
+
+Three additive changes to `sepple`; existing behavior and CLI output stay byte-identical.
+
+### `TimestampedText` (`ipa_processor.rs`)
+
+- Remove the `start_time` and `end_time` fields.
+- Add `timestamps: Vec<Duration>` — one frame-derived time per decoded symbol.
+- Add accessor methods: `start_time()` = `timestamps.first()`, `end_time()` = `timestamps.last()`.
+- The IpaProcessor computes the per-symbol times via `greedy_ctc_decode_with_indexes`: `time = start_time + frame_index * logit_duration`. The `text` field and `Display` are untouched.
+
+### `WordDetector` (`word_detector.rs`)
+
+- New output type `DetectedWord { word: String, audio_span: Range<Duration>, detected_at: Duration }`; `Display` prints only the word.
+- Add `timestamps: Vec<Duration>` parallel to `text_buffer`. On append, extend with the chunk's `timestamps`.
+- `detected_at` = `unix_timestamp_now()` — the wall-clock moment the detection fired (DESIGN §4).
+- `audio_span` = `(timestamps[g_start], timestamps[g_end − 1] + token_duration)` — inclusive: first grapheme's timestamp to last grapheme's timestamp plus one token duration (`logit_count_to_time(1)` = 20 ms).
+
+### `dictionary.rs`
+
+- Rename the adjusted matcher to `find_words_in_string_indexed`, returning `(Vec<(&str, usize, usize)>, usize)` — each word with its `(start, end)` byte range, plus the consumed count.
+- Add a wrapper `find_words_in_string` that calls `find_words_in_string_indexed` and drops the indexes — keeps `run_single` working unchanged.
+- The WordDetector uses `find_words_in_string_indexed` to get each word's byte range for the `audio_span`.
 
 # Phase 3 — transport and full data sending
 
-18. Build the transport from §6: one bounded channel per feed with non-blocking
-    `try_send`, a shared dropped-events counter surfaced in the toolbar, and a
-    per-frame GUI drain that writes into the same history store the mockup data
-    populated (discarding events stamped before the Start instant).
-19. Build the `instrumentation` module: `SilenceGate`, the generic `Tap<T>` used both
-    as mid-pipeline processor and terminal sink, and the delegating wrappers around
-    `VadFilter` / `WordDetector` that read the new accessors into their feeds.
-20. Build the `pipeline` module assembling the pipeline exactly as in §3 from
-    `sepple pipeline`'s configuration values (minus AudioLogger, plus SilenceGate,
-    taps, wrappers, terminal tap) through `build_no_consumer`, with the terminal tap's
-    sink future on a background thread and cancel-then-join on window close.
-21. Replace the mockup data with the real pipeline feeds, so every strip is driven by
-    live or file audio through the taps and wrappers.
-22. Complete the Start/Stop path by wiring the shared signal to `SilenceGate`, so Stop
-    zeroes samples for the running pipeline while the GUI freezes locally.
-23. Implement the `-f` file mode behavior: the file is piped at real-time speed onto
-    the session-relative timeline, with the GUI staying open and Start/Stop operable
-    once the file is exhausted.
+## 18. Build the transport
+
+`gui/transport.rs` holds a `Transport` struct: one bounded channel per feed, a shared
+`AtomicUsize` dropped counter, and a `drain` method. The App holds the transport and calls
+`drain` each frame.
+
+### Transport (`gui/transport.rs`)
+
+- **Per-feed channels** — one bounded `tokio::sync::mpsc::channel` per feed (raw, post-VAD,
+  score, chunk, token, snapshot, word); capacity 10 (matching the pipeline).
+- **Per-frame drain** — `drain(&mut self, timeline)` loops `try_recv` on every feed,
+  re-bases each event via `timeline.rebased(stamp)`, and pushes it to the matching track.
+  Negative re-based values (pre-Start) are skipped.
+- **Dropped counter** — the shared `AtomicUsize`, read by the toolbar
+  (`dropped events: N`).
+
+### Pre-Start discard
+
+On Start, after `timeline.clear()`, set the origin to `unix_timestamp_now()`. The drain
+then re-bases against it, so pre-Start in-flight events go negative and are discarded —
+no separate `last_start` field.
+
+## 19. Build the `instrumentation` module
+
+`gui/instrumentation.rs` holds `SilenceGate`, the generic `Tap<T>`, and the two wrappers.
+Each pushes to its feed channel with non-blocking `try_send` (dropping and counting on
+overflow). The App's `running` becomes a shared `Arc<AtomicBool>`.
+
+### `Tap<T>` (both roles)
+
+Generic over `T`; holds a `Sender<T>` (its feed channel) and the shared dropped counter.
+As `PipelineProcessor` it clones to the channel then forwards the value unchanged (a pure
+observer); as `PipelineSink` it clones then drains and discards.
+
+### `SilenceGate`
+
+Holds the shared `running: Arc<AtomicBool>`. As `PipelineProcessor<Input = Output =
+TimestampedVec<f32>>`: passes through when running, zeroes every sample when stopped.
+
+### `InstrumentedVadFilter`
+
+Wraps `VadFilter`; delegates `process_value`, then reads `is_talking()` and pushes
+`ScoreEvent { span, score, gate_open }` to the score feed (span/score taken from the input
+before delegating).
+
+### `InstrumentedWordDetector`
+
+Wraps `WordDetector`; delegates `process_value`, then reads `buffer()`. Only when the
+buffer **changed** (differs from the last pushed), pushes `BufferSnapshot { at, text }` to
+the snapshot feed (`at` = `unix_timestamp_now()`) and records the new buffer. Skips when
+unchanged — e.g. empty text appended, or no match/trim — so the strip doesn't fill with
+redundant snapshots.
+
+## 20. Build the `pipeline` module
+
+`gui/pipeline.rs` assembles the tester pipeline from the same configuration values as
+`sepple pipeline` (duplicated here), minus AudioLogger, plus SilenceGate, taps, wrappers,
+and the terminal Tap. It returns the transport for the GUI to drain.
+
+### Pipeline assembly (`gui/pipeline.rs`)
+
+- **Configuration** — duplicated from `run_pipeline`: `SlidingWindowConfig { window_size:
+  1000 ms, cut_left: 150 ms, cut_right: 150 ms }`, `VadFilter::new(0.35, 0.35, 10)`,
+  `SlidingWindowChunker::new(&config, 40 ms)`, `AudioChunker::new(vad::CHUNK_SIZE)`.
+- **Source** — `AudioCapture::new()` (live) or `MemoryAudioSource::new(read_wav_to_f32(file),
+  vad::CHUNK_SIZE)` (file).
+- **Model + dictionary** — `model_provider::ensure_downloaded_and_get_path(&reporter)` and
+  `Dictionary::from_file(DICTIONARY_PATH)`.
+- **Chain** — `source → SilenceGate → AudioChunker → [tap: raw] → SileroVadScorer →
+  InstrumentedVadFilter → [tap: post-VAD] → SlidingWindowChunker → [tap: chunk] →
+  IpaProcessor → [tap: token] → InstrumentedWordDetector → [snapshot]`, built with
+  `Pipeline::new(source).then(...)...build_no_consumer()`.
+- **Terminal Tap** — created with the word feed channel; its sink future runs on a
+  background thread, consuming the final `DetectedWord` output.
+- **Shutdown** — the pipeline handle and terminal Tap thread are dropped (detached) when
+  the window closes; the process exit reclaims everything.
+
+```rust
+pub fn build(file: Option<PathBuf>) -> Transport {
+    // create transport (channels + receivers + dropped counter)
+    // create taps/wrappers with the feed senders
+    // assemble the pipeline via build_no_consumer
+    // run the terminal Tap's sink future on a background thread
+    // return the transport
+}
+```
+
+## 21. Replace the mockup data with the real pipeline feeds and wire Start/Stop
+
+`main` builds the pipeline and passes the transport to `gui::run`. The App's timeline starts
+empty; each frame it drains the transport into the timeline, so every strip is driven by
+live or file audio through the taps and wrappers. The Start/Stop buttons drive the shared
+`running` flag, which the SilenceGate reads to zero samples when stopped. The
+`gui/mockup.rs` module is deleted.
+
+### Wiring
+
+- **`main`** — `let transport = pipeline::build(cli.file); gui::run(transport);` (the file
+  is consumed by the pipeline build; the model loads before the window opens).
+- **`gui::run(transport)`** — adjusted to take the transport instead of the file; creates
+  the App with the transport + an empty timeline.
+- **The App** — holds `timeline: TimelineData` (empty) and `transport: Transport`; each
+  frame calls `transport.drain(&mut self.timeline)`.
+- **Shared state** — the transport owns `running: Arc<AtomicBool>` and
+  `dropped: Arc<AtomicUsize>`; the App and the SilenceGate hold clones. The App's
+  `start()`/`stop()` set `running`; the SilenceGate reads it to zero samples when stopped.
+- **App updates** — the App's `running`/`dropped` fields become the shared atomics from the
+  transport; the render loop, plot config, and toolbar read them via
+  `load(Ordering::Relaxed)`.
+- The mockup module is deleted; `TimelineData::mockup()` is no longer used.
