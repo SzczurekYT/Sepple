@@ -363,8 +363,8 @@ appear on the fresh timeline.
 
 **Lifecycle.** The pipeline is built with the existing "no consumer" constructor, which
 hands back the final receiver plus a pipeline handle; the terminal `Tap`'s sink future
-runs on a background thread. Closing the window cancels the handle — every pipeline
-thread shuts down — and then joins before the process exits.
+runs on a background thread. Closing the window drops the handle and the terminal
+`Tap`'s thread — the process exit reclaims everything, so there is no cancel/join.
 
 ---
 
