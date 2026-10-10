@@ -50,6 +50,10 @@ impl VadFilter {
             && score < self.end_talk_threshold
             && score <= previous_score
     }
+
+    pub fn is_talking(&self) -> bool {
+        self.is_talking
+    }
 }
 
 impl PipelineConsumer for VadFilter {
@@ -110,6 +114,7 @@ impl PipelineProcessor for VadFilter {
     }
 }
 
+#[derive(Clone)]
 pub enum VadValue {
     Data(TimestampedVec<f32>),
     SpeechEnd,

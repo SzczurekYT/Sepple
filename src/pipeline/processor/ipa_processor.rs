@@ -120,8 +120,9 @@ impl PipelineProcessor for IpaProcessor {
 
         let end_time = start_time + logit_count_to_time(last_letter_index);
 
-        let ctc_decoded = self.recognizer.greedy_ctc_decode(cut_logits);
-        let text = self.recognizer.decode_tokens(&ctc_decoded);
+        let (ctc_decoded, indexes) = self.recognizer.greedy_ctc_decode_with_indexes(cut_logits);
+        let tokens = self.recognizer.decode_each_token(&ctc_decoded);
+        let text = tokens.concat();
 
         if text.is_empty() {
             return Ok(());
@@ -132,13 +133,12 @@ impl PipelineProcessor for IpaProcessor {
             println!("Text {text} after {delay:.2?}");
         }
 
-        sender
-            .send(TimestampedText {
-                text,
-                start_time,
-                end_time,
-            })
-            .await?;
+        let timestamps = indexes
+            .iter()
+            .map(|logit_index| start_time + logit_count_to_time(*logit_index))
+            .collect();
+
+        sender.send(TimestampedText { text, timestamps }).await?;
 
         Ok(())
     }
@@ -147,18 +147,35 @@ impl PipelineProcessor for IpaProcessor {
 #[derive(Debug, Clone)]
 pub struct TimestampedText {
     pub text: String,
-    pub start_time: Duration,
-    pub end_time: Duration,
+    pub timestamps: Vec<Duration>,
+}
+
+impl TimestampedText {
+    pub fn start_time(&self) -> Duration {
+        self.timestamps
+            .first()
+            .copied()
+            .expect("non empty TimestampedText")
+    }
+
+    pub fn end_time(&self) -> Duration {
+        self.timestamps
+            .last()
+            .copied()
+            .expect("non empty TimestampedText")
+    }
 }
 
 impl Display for TimestampedText {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let start = self.start_time();
+        let end = self.end_time();
         write!(
             f,
             "Text: \"{}\" at {:?}, duration: {:?}",
             self.text,
-            self.start_time,
-            self.end_time - self.start_time
+            start,
+            end - start
         )
     }
 }

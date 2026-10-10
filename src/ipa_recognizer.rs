@@ -103,17 +103,20 @@ impl<B: Backend + BackendTypes> IpaRecognizer<B> {
         (tokens, indexes)
     }
 
+    pub fn decode_token(&self, token: i32) -> &str {
+        self.vocab.get(&token).map(String::as_str).unwrap_or("?")
+    }
+
     pub fn decode_tokens(&self, tokens: &[i32]) -> String {
+        self.decode_each_token(tokens).concat()
+    }
+
+    pub fn decode_each_token(&self, tokens: &[i32]) -> Vec<&str> {
         tokens
             .iter()
-            .map(|id| {
-                self.vocab
-                    .get(id)
-                    .cloned()
-                    .unwrap_or_else(|| "?".to_string())
-            })
-            .collect::<Vec<_>>()
-            .join("")
+            .copied()
+            .map(|token| self.decode_token(token))
+            .collect()
     }
 
     pub fn padding_token_id(&self) -> i32 {

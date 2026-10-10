@@ -73,6 +73,21 @@ impl Dictionary {
         'dict: 'out,
         'input: 'out,
     {
+        let (words, consumed) = self.find_words_in_string_indexed(input);
+        (
+            words.into_iter().map(|(word, _, _)| word).collect(),
+            consumed,
+        )
+    }
+
+    pub fn find_words_in_string_indexed<'dict, 'input, 'out>(
+        &'dict self,
+        input: &'input str,
+    ) -> (Vec<(&'out str, usize, usize)>, usize)
+    where
+        'dict: 'out,
+        'input: 'out,
+    {
         if input.is_empty() {
             return (vec![], 0);
         }
@@ -80,17 +95,26 @@ impl Dictionary {
         let exact_search_entries = self.exact_find_words(input);
 
         let entry_count = exact_search_entries.len();
-        let mut words = Vec::with_capacity(entry_count);
+        let mut words: Vec<(&str, usize, usize)> = Vec::with_capacity(entry_count);
 
         let mut iter = exact_search_entries.into_iter();
+        let mut offset = 0;
 
         // Last one is handled separately
         for entry in iter.by_ref().take(entry_count - 1) {
             match entry {
-                SearchEntry::Match(word) => words.push(word),
+                SearchEntry::Match(word) => {
+                    let start = offset;
+                    let end = offset + word.len();
+                    words.push((word, start, end));
+                    offset = end;
+                }
                 SearchEntry::NoMatch(string) => {
                     let (found, _) = self.fuzzy_find_words(string);
-                    words.extend(found);
+                    for (pattern, start, end) in found {
+                        words.push((pattern, offset + start, offset + end));
+                    }
+                    offset += string.len();
                 }
             }
         }
@@ -100,11 +124,15 @@ impl Dictionary {
         match iter.next().expect("unreachable for non empty input") {
             SearchEntry::Match(word) => {
                 consumed = input.len();
-                words.push(word);
+                let start = offset;
+                let end = offset + word.len();
+                words.push((word, start, end));
             }
             SearchEntry::NoMatch(string) => {
                 let (found, consumed_from_input) = self.fuzzy_find_words(string);
-                words.extend(found);
+                for (pattern, start, end) in found {
+                    words.push((pattern, offset + start, offset + end));
+                }
                 consumed = input.len() - string.len() + consumed_from_input;
             }
         }
@@ -147,7 +175,8 @@ impl Dictionary {
         found_words
     }
 
-    pub fn fuzzy_find_words(&self, mut string: &str) -> (Vec<&str>, usize) {
+    /// Returns (Vec<(word, start_index, end_index)>, consumed)
+    pub fn fuzzy_find_words(&self, mut string: &str) -> (Vec<(&str, usize, usize)>, usize) {
         let mut result = vec![];
         let mut offset = 0;
         let mut consumed = 0;
@@ -159,10 +188,11 @@ impl Dictionary {
         {
             let word = self.fuzzy_match_word(string);
             if let Some((word, pattern)) = word {
+                let start = offset;
                 offset += word.len();
                 consumed = offset;
                 string = &string[word.len()..];
-                result.push(pattern);
+                result.push((pattern, start, offset));
                 debug_print!("remaining: {string}");
             } else {
                 let next_index = string.ceil_char_boundary(1);
