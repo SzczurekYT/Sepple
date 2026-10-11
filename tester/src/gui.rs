@@ -1,30 +1,34 @@
-use std::{ops::Range, path::PathBuf};
+use std::ops::Range;
 
 use eframe::{
     Frame,
     egui::{self, Panel, Ui},
 };
-use sepple::units::sample_count_to_duration;
+use sepple::units::{sample_count_to_duration, unix_timestamp_now};
 
 use timeline_data::TimelineData;
 use toolbar::ExportSource;
 
+use crate::gui::transport::Transport;
+
 mod chunk;
 mod delay;
 mod export;
+mod instrumentation;
 mod mockup;
 mod plots;
 mod time_axis;
 mod timeline_data;
 mod tokens;
 mod toolbar;
+mod transport;
 mod vad;
 mod waveform;
 
 pub const LOOKAHEAD_VIEW_SPAN_FRACTION: f64 = 0.25;
 pub const MAX_SPAN: f64 = 60.0;
 
-pub fn run(file: Option<PathBuf>) -> Result<(), eframe::Error> {
+pub fn run(transport: Transport) -> Result<(), eframe::Error> {
     let options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default()
             .with_title("sepple tester")
@@ -36,10 +40,9 @@ pub fn run(file: Option<PathBuf>) -> Result<(), eframe::Error> {
         options,
         Box::new(move |_cc| {
             Ok(Box::new(App {
-                file,
                 timeline: TimelineData::mockup(),
+                transport,
                 running: false,
-                dropped: 0,
                 export_source: ExportSource::Raw,
                 view: ViewState {
                     start: 0.0,
@@ -53,11 +56,9 @@ pub fn run(file: Option<PathBuf>) -> Result<(), eframe::Error> {
 }
 
 pub struct App {
-    #[allow(dead_code)]
-    file: Option<PathBuf>,
     timeline: TimelineData,
+    transport: Transport,
     running: bool,
-    dropped: usize,
     export_source: ExportSource,
     view: ViewState,
     selection: Option<Range<f64>>,
@@ -67,6 +68,7 @@ impl App {
     fn start(&mut self) {
         self.running = true;
         self.timeline.clear();
+        self.timeline.origin = Some(unix_timestamp_now());
         self.selection = None;
     }
 
@@ -104,6 +106,8 @@ impl App {
 
 impl eframe::App for App {
     fn ui(&mut self, ui: &mut Ui, _frame: &mut Frame) {
+        self.transport.drain(&mut self.timeline);
+
         Panel::top("toolbar").show(ui, |ui| {
             toolbar::render(self, ui);
         });

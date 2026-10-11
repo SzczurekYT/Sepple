@@ -32,7 +32,7 @@ impl SessionConfig {
 #[derive(Debug, Clone, Default)]
 pub struct TimelineData {
     pub config: SessionConfig,
-    origin: Option<Duration>,
+    pub(super) origin: Option<Duration>,
     pub raw: AudioSegment,
     pub post_vad: Vec<AudioSegment>,
     pub vad_scores: Vec<VadScoreEvent>,
@@ -49,7 +49,6 @@ impl TimelineData {
     }
 
     pub fn clear(&mut self) {
-        self.origin = None;
         self.raw = AudioSegment::default();
         self.post_vad.clear();
         self.vad_scores.clear();

@@ -14,7 +14,8 @@ struct Cli {
 
 fn main() {
     let cli = Cli::parse();
-    if let Err(err) = gui::run(cli.file) {
+    let transport = todo!();
+    if let Err(err) = gui::run(transport) {
         eprintln!("tester failed: {err:?}");
         exit(1);
     }

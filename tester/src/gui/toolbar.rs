@@ -38,7 +38,7 @@ pub fn render(app: &mut App, ui: &mut Ui) {
             app.stop();
         }
         ui.label(if app.running { "running" } else { "stopped" });
-        ui.label(format!("dropped events: {}", app.dropped));
+        ui.label(format!("dropped events: {}", app.transport.dropped()));
 
         ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
             ComboBox::from_id_salt("export_source")
