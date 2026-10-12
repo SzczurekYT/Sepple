@@ -21,9 +21,9 @@ use sepple::{
 };
 use tokio::sync::mpsc::{self, Receiver, Sender, error::SendError};
 
-use super::timeline_data::{BufferSnapshot, VadScoreEvent};
+use crate::gui::timeline_data::{BufferSnapshot, VadScoreEvent};
 
-const CHANNEL_BUFFER_SIZE: usize = 10;
+const CHANNEL_BUFFER_SIZE: usize = 50;
 
 pub struct Tap<T> {
     output_size: Option<usize>,
@@ -146,16 +146,16 @@ pub struct InstrumentedVadFilter {
 }
 
 impl InstrumentedVadFilter {
-    pub fn new(
-        inner: VadFilter,
-        score_feed: Sender<VadScoreEvent>,
-        dropped: Arc<AtomicUsize>,
-    ) -> Self {
-        Self {
-            inner,
-            score_feed,
-            dropped,
-        }
+    pub fn new(inner: VadFilter, dropped: Arc<AtomicUsize>) -> (Self, Receiver<VadScoreEvent>) {
+        let (sender, receiver) = mpsc::channel(CHANNEL_BUFFER_SIZE);
+        (
+            Self {
+                inner,
+                score_feed: sender,
+                dropped,
+            },
+            receiver,
+        )
     }
 }
 
@@ -208,17 +208,17 @@ pub struct InstrumentedWordDetector {
 }
 
 impl InstrumentedWordDetector {
-    pub fn new(
-        inner: WordDetector,
-        snapshot_feed: Sender<BufferSnapshot>,
-        dropped: Arc<AtomicUsize>,
-    ) -> Self {
-        Self {
-            inner,
-            snapshot_feed,
-            dropped,
-            last_buffer: String::new(),
-        }
+    pub fn new(inner: WordDetector, dropped: Arc<AtomicUsize>) -> (Self, Receiver<BufferSnapshot>) {
+        let (sender, receiver) = mpsc::channel(CHANNEL_BUFFER_SIZE);
+        (
+            Self {
+                inner,
+                snapshot_feed: sender,
+                dropped,
+                last_buffer: String::new(),
+            },
+            receiver,
+        )
     }
 }
 
@@ -266,5 +266,6 @@ impl PipelineProcessor for InstrumentedWordDetector {
 
 fn audio_span(audio: &TimestampedVec<f32>) -> Range<Duration> {
     let (_, first) = audio.first().expect("non empty TimestampedVec");
-    *first..(*first + sample_count_to_duration(audio.len()))
+    let (_, last) = audio.last().expect("non empty TimestampedVec");
+    *first..(*last + sample_count_to_duration(1))
 }

@@ -1,4 +1,4 @@
-use std::ops::Range;
+use std::{ops::Range, sync::atomic::Ordering};
 
 use eframe::{
     Frame,
@@ -9,19 +9,16 @@ use sepple::units::{sample_count_to_duration, unix_timestamp_now};
 use timeline_data::TimelineData;
 use toolbar::ExportSource;
 
-use crate::gui::transport::Transport;
+use crate::transport::Transport;
 
 mod chunk;
 mod delay;
 mod export;
-mod instrumentation;
-mod mockup;
 mod plots;
 mod time_axis;
-mod timeline_data;
+pub(crate) mod timeline_data;
 mod tokens;
 mod toolbar;
-mod transport;
 mod vad;
 mod waveform;
 
@@ -40,9 +37,8 @@ pub fn run(transport: Transport) -> Result<(), eframe::Error> {
         options,
         Box::new(move |_cc| {
             Ok(Box::new(App {
-                timeline: TimelineData::mockup(),
+                timeline: TimelineData::default(),
                 transport,
-                running: false,
                 export_source: ExportSource::Raw,
                 view: ViewState {
                     start: 0.0,
@@ -58,7 +54,6 @@ pub fn run(transport: Transport) -> Result<(), eframe::Error> {
 pub struct App {
     timeline: TimelineData,
     transport: Transport,
-    running: bool,
     export_source: ExportSource,
     view: ViewState,
     selection: Option<Range<f64>>,
@@ -66,14 +61,22 @@ pub struct App {
 
 impl App {
     fn start(&mut self) {
-        self.running = true;
+        self.set_running(true);
         self.timeline.clear();
         self.timeline.origin = Some(unix_timestamp_now());
         self.selection = None;
     }
 
     fn stop(&mut self) {
-        self.running = false;
+        self.set_running(false);
+    }
+
+    pub fn running(&self) -> bool {
+        self.transport.running.load(Ordering::Relaxed)
+    }
+
+    pub fn set_running(&self, running: bool) {
+        self.transport.running.store(running, Ordering::Relaxed);
     }
 
     fn last_sample_x(&self) -> f64 {
@@ -105,15 +108,19 @@ impl App {
 }
 
 impl eframe::App for App {
-    fn ui(&mut self, ui: &mut Ui, _frame: &mut Frame) {
+    fn logic(&mut self, ctx: &egui::Context, _frame: &mut Frame) {
         self.transport.drain(&mut self.timeline);
+        ctx.request_repaint();
+    }
 
+    fn ui(&mut self, ui: &mut Ui, _frame: &mut Frame) {
         Panel::top("toolbar").show(ui, |ui| {
             toolbar::render(self, ui);
         });
 
-        if self.running {
+        if self.running() {
             self.view.end = self.last_sample_x();
+            self.view.start = self.last_sample_x() - self.view.target_span;
         }
 
         plots::render(self, ui);

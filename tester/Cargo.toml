@@ -13,3 +13,4 @@ eframe = "0.36.2"
 egui_plot = "0.37.0"
 rfd = "0.17.2"
 tokio.workspace = true
+unicode-segmentation = "1.13.3"

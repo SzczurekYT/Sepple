@@ -8883,6 +8883,7 @@ dependencies = [
  "rfd",
  "sepple",
  "tokio",
+ "unicode-segmentation",
 ]
 
 [[package]]

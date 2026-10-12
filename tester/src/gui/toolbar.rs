@@ -37,7 +37,8 @@ pub fn render(app: &mut App, ui: &mut Ui) {
         if ui.button("Stop").clicked() {
             app.stop();
         }
-        ui.label(if app.running { "running" } else { "stopped" });
+        let running = app.running();
+        ui.label(if running { "running" } else { "stopped" });
         ui.label(format!("dropped events: {}", app.transport.dropped()));
 
         ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
@@ -57,7 +58,7 @@ pub fn render(app: &mut App, ui: &mut Ui) {
             };
             ui.label(format!("{preview} from"));
 
-            let can_export = !app.running && app.selection.is_some();
+            let can_export = !running && app.selection.is_some();
             if ui.add_enabled(can_export, Button::new("Export")).clicked() {
                 let path = FileDialog::new()
                     .set_file_name("exported.wav")

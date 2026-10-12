@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 use std::{ops::Range, time::Duration};
 
 #[derive(Debug, Clone)]
@@ -32,7 +30,7 @@ impl SessionConfig {
 #[derive(Debug, Clone, Default)]
 pub struct TimelineData {
     pub config: SessionConfig,
-    pub(super) origin: Option<Duration>,
+    pub(crate) origin: Option<Duration>,
     pub raw: AudioSegment,
     pub post_vad: Vec<AudioSegment>,
     pub vad_scores: Vec<VadScoreEvent>,
@@ -58,11 +56,10 @@ impl TimelineData {
         self.words.clear();
     }
 
-    pub fn push_raw(&mut self, mut segment: AudioSegment) {
+    pub fn push_raw(&mut self, segment: AudioSegment) {
         if self.raw.samples.is_empty() {
-            self.raw.start = segment.start;
+            self.raw.start = self.rebased(segment.start);
         }
-        segment.start = self.rebased(segment.start);
         self.raw.samples.extend(segment.samples);
     }
 
@@ -84,8 +81,8 @@ impl TimelineData {
 
     pub fn push_score(&mut self, mut event: VadScoreEvent) {
         let start = self.rebased(event.span.start);
-        let len = event.span.end.saturating_sub(event.span.start);
-        event.span = start..start + len;
+        let end = self.rebased(event.span.end);
+        event.span = start..end;
         self.vad_scores.push(event);
     }
 

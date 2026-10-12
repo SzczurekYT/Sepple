@@ -58,3 +58,7 @@ egui-wgpu = { git = "https://github.com/emilk/egui", branch = "main" }
 egui_plot = { git = "https://github.com/emilk/egui_plot", branch = "main" }
 emath = { git = "https://github.com/emilk/egui", branch = "main" }
 eframe = { git = "https://github.com/emilk/egui", branch = "main" }
+
+[profile.profiling]
+inherits = "release"
+debug = true

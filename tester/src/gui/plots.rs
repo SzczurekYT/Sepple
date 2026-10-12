@@ -72,7 +72,7 @@ fn base_plot<'a>(id: &str, running: bool, height: f32, cursor_link: Id, axis_lin
 }
 
 fn update_selection(app: &mut App, response: &PlotResponse<()>) {
-    if app.running {
+    if app.running() {
         return;
     }
     let Some(pointer) = response.response.interact_pointer_pos() else {
@@ -140,7 +140,7 @@ pub fn render(app: &mut App, ui: &mut Ui) {
                     ui.allocate_space(Vec2::new(PLOT_PADDING, 0.0));
                     let mut plot = base_plot(
                         &format!("strip{}", i + 1),
-                        app.running,
+                        app.running(),
                         height,
                         plot_cursor_link,
                         time_link,
