@@ -79,6 +79,25 @@ pub fn render(app: &mut App, ui: &mut Ui) {
             }
 
             ui.label("zoom");
+
+            ui.allocate_space(Vec2::new(25.0, 0.0));
+
+            let avg_latency = get_average_latency(app);
+            ui.label(format!("avg latency: {avg_latency}"));
         });
     });
+}
+
+fn get_average_latency(app: &App) -> String {
+    let words = &app.timeline.words;
+    if words.is_empty() {
+        return "N/A".to_owned();
+    }
+    let average = words
+        .iter()
+        .map(|word| word.detected_at.saturating_sub(word.span.end).as_secs_f64())
+        .sum::<f64>()
+        / words.len() as f64;
+
+    format!("{average:.2}")
 }
