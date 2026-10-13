@@ -63,6 +63,7 @@ impl App {
     fn start(&mut self) {
         self.set_running(true);
         self.timeline.clear();
+        self.transport.dropped.store(0, Ordering::Release);
         self.timeline.origin = Some(unix_timestamp_now());
         self.selection = None;
     }
