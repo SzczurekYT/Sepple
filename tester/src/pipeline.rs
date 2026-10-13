@@ -25,7 +25,7 @@ use sepple::{
     },
     read_wav_to_f32,
     timestamped_vec::TimestampedVec,
-    units::duration_to_sample_count,
+    units::{duration_to_sample_count, unix_timestamp_now},
     vad,
 };
 
@@ -96,6 +96,7 @@ pub fn build(file: Option<PathBuf>) -> Result<Transport, Box<dyn std::error::Err
         running,
         dropped,
         raw: raw_rx,
+        last_raw_update_timestamp: unix_timestamp_now(),
         post_vad: post_vad_rx,
         score: score_rx,
         chunk: chunk_rx,

@@ -1,8 +1,8 @@
-use std::{ops::Range, sync::atomic::Ordering};
+use std::{ops::Range, sync::atomic::Ordering, time::Duration};
 
 use eframe::{
     Frame,
-    egui::{self, Panel, Ui},
+    egui::{self, Panel, Ui, lerp},
 };
 use sepple::units::{sample_count_to_duration, unix_timestamp_now};
 
@@ -24,6 +24,7 @@ mod waveform;
 
 pub const LOOKAHEAD_VIEW_SPAN_FRACTION: f64 = 0.25;
 pub const MAX_SPAN: f64 = 60.0;
+pub const FOLLOW_ANIMATION_DURATION: Duration = Duration::from_millis(32);
 
 pub fn run(transport: Transport) -> Result<(), eframe::Error> {
     let options = eframe::NativeOptions {
@@ -70,6 +71,8 @@ impl App {
 
     fn stop(&mut self) {
         self.set_running(false);
+        self.view.end = self.last_sample_x();
+        self.view.start = self.last_sample_x() - self.view.target_span;
     }
 
     pub fn running(&self) -> bool {
@@ -120,8 +123,15 @@ impl eframe::App for App {
         });
 
         if self.running() {
-            self.view.end = self.last_sample_x();
-            self.view.start = self.last_sample_x() - self.view.target_span;
+            let now = unix_timestamp_now();
+            let time_since_update = now - self.transport.last_raw_update_timestamp;
+            let anim_progess =
+                time_since_update.as_secs_f64() / FOLLOW_ANIMATION_DURATION.as_secs_f64().min(1.0);
+            self.view.end = lerp(self.view.end..=self.last_sample_x(), anim_progess);
+            self.view.start = lerp(
+                self.view.start..=(self.last_sample_x() - self.view.target_span),
+                anim_progess,
+            );
         }
 
         plots::render(self, ui);

@@ -11,6 +11,7 @@ use sepple::{
         ipa_processor::TimestampedText, vad_filter::VadValue, word_detector::DetectedWord,
     },
     timestamped_vec::TimestampedVec,
+    units::unix_timestamp_now,
 };
 use tokio::sync::mpsc::Receiver;
 use unicode_segmentation::UnicodeSegmentation;
@@ -23,6 +24,7 @@ pub struct Transport {
     pub running: Arc<AtomicBool>,
     pub dropped: Arc<AtomicUsize>,
     pub raw: Receiver<TimestampedVec<f32>>,
+    pub last_raw_update_timestamp: Duration,
     pub post_vad: Receiver<VadValue>,
     pub score: Receiver<VadScoreEvent>,
     pub chunk: Receiver<TimestampedVec<f32>>,
@@ -41,7 +43,10 @@ impl Transport {
             &mut self.raw,
             timeline,
             |event| event.first().map(|(_, time)| *time),
-            |timeline, value| timeline.push_raw(value.into()),
+            |timeline, value| {
+                self.last_raw_update_timestamp = unix_timestamp_now();
+                timeline.push_raw(value.into())
+            },
         );
         drain_feed(
             &mut self.post_vad,
@@ -94,7 +99,7 @@ fn drain_feed<T>(
     receiver: &mut Receiver<T>,
     timeline: &mut TimelineData,
     stamp_of: impl Fn(&T) -> Option<Duration>,
-    push: impl Fn(&mut TimelineData, T),
+    mut push: impl FnMut(&mut TimelineData, T),
 ) {
     while let Ok(event) = receiver.try_recv() {
         if let Some(origin) = timeline.origin
