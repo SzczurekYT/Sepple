@@ -10,7 +10,7 @@ use crate::{
     error::{SeppleError, SeppleResult},
     pipeline::{PipelineProducer, PipelineSource},
     timestamped_vec::{self, TimestampedVec},
-    units::{SAMPLE_DURATION, SAMPLE_RATE_U32, unix_timestamp_now},
+    units::{SAMPLE_RATE_U32, sample_count_to_duration, unix_timestamp_now},
 };
 
 pub struct AudioCapture {
@@ -60,7 +60,7 @@ impl PipelineSource for AudioCapture {
             .build_input_stream(
                 config,
                 move |data: &[i16], _: &cpal::InputCallbackInfo| {
-                    let timestamp = unix_timestamp_now() - SAMPLE_DURATION * data.len() as u32;
+                    let timestamp = unix_timestamp_now() - sample_count_to_duration(data.len());
 
                     // Normalize i16 to f32 [-1.0, 1.0]
                     let normalized: Vec<f32> = data

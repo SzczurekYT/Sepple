@@ -3,9 +3,6 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 pub const SAMPLE_RATE_U32: u32 = 16_000;
 pub const SAMPLE_RATE_USIZE: usize = 16_000;
 pub const SAMPLE_RATE_F32: f32 = 16_000.0;
-pub const SAMPLE_DURATION: Duration = Duration::from_nanos_u128(
-    Duration::from_secs(1).as_nanos() / Duration::from_millis(SAMPLE_RATE_U32 as u64).as_nanos(),
-);
 pub const DOWNSAMPLE_RATE_F32: f32 = 320.0;
 pub const LOGITS_PER_SECOND: f32 = SAMPLE_RATE_F32 / DOWNSAMPLE_RATE_F32;
 
