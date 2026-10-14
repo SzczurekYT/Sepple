@@ -1,14 +1,13 @@
 use tokio::sync::mpsc::{Sender, error::SendError};
 
 use crate::{
-    SeppleBackend,
     pipeline::{PipelineConsumer, PipelineProcessor, PipelineProducer},
     timestamped_vec::TimestampedVec,
     vad::{self, Vad},
 };
 
 pub struct SileroVadScorer {
-    vad: Vad<SeppleBackend>,
+    vad: Vad,
 }
 
 impl SileroVadScorer {

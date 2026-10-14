@@ -16,8 +16,8 @@ version = "0.1.0"
 edition = "2024"
 
 [workspace.dependencies]
-burn = { version = "~0.21", features = ["flex"] }
-burn-store = "~0.21"
+burn = { version = "~0.22.0", features = ["flex"] }
+burn-store = "~0.22.0"
 clap = { version = "4.6.1", features = ["derive"] }
 indicatif = "0.18.6"
 serde_json = "1.0.149"
@@ -36,7 +36,7 @@ unicode-segmentation = "1.13.3"
 phonetics-rs.workspace = true
 clap.workspace = true
 tokio.workspace = true
-bunsen = { version = "0.33.0", default-features = false, features = [
+bunsen = { version = "0.38.0", default-features = false, features = [
     "store",
     "store_pytorch",
     "silero-weights",

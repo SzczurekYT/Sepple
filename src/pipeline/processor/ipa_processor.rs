@@ -14,7 +14,7 @@ use tokio::{
 };
 
 use crate::{
-    SeppleBackend, debug_enabled,
+    debug_enabled,
     error::SeppleResult,
     ipa_recognizer::{IpaRecognizer, z_score_normalize},
     pipeline::{
@@ -28,7 +28,7 @@ use crate::{
 };
 
 pub struct IpaProcessor {
-    recognizer: Arc<IpaRecognizer<SeppleBackend>>,
+    recognizer: Arc<IpaRecognizer>,
     window_size: usize,
     notification: Arc<Notify>,
     cut_left_logits: usize,

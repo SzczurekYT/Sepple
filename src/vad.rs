@@ -1,25 +1,22 @@
-use bunsen::{
-    burner::tensor::TensorDataViewExt,
-    kits::speech::silero_vad::{
-        SileroVad, SileroVadCollection, SileroVadContext, pretrained::bundled,
-    },
+use bunsen::kits::speech::silero_vad::{
+    SileroVad, SileroVadCollection, SileroVadContext, pretrained::bundled,
 };
-use burn::{Tensor, prelude::Backend, tensor::backend::BackendTypes};
+use burn::{Tensor, tensor::Device};
 
-use crate::{SeppleBackend, ipa_recognizer::samples_to_tensor, units::SAMPLE_RATE_USIZE};
+use crate::{ipa_recognizer::samples_to_tensor, units::SAMPLE_RATE_USIZE};
 
 /// For 16khz audio silero works on chunks of 512
 pub const CHUNK_SIZE: usize = 512;
 
-pub struct Vad<B: Backend + BackendTypes = SeppleBackend> {
-    device: B::Device,
-    vad: SileroVad<B>,
-    context: SileroVadContext<B>,
+pub struct Vad {
+    device: Device,
+    vad: SileroVad,
+    context: SileroVadContext,
 }
 
-impl<B: Backend> Vad<B> {
+impl Vad {
     pub fn init() -> Self {
-        let device = B::Device::default();
+        let device = Device::default();
 
         let vad = SileroVadCollection::load_from_burnpack_bytes(
             bundled::burnpack_as_burn_bytes(),
@@ -52,11 +49,14 @@ impl<B: Backend> Vad<B> {
     }
 
     pub fn process_chunk(&mut self, audio: &[f32]) -> f32 {
-        let data = self.forward_chunk(audio).into_data().convert::<f32>();
-        (&data.expect_index_view())[&[0]]
+        self.forward_chunk(audio)
+            .slice(0)
+            .into_data()
+            .as_slice()
+            .unwrap()[0]
     }
 
-    fn forward_chunk(&mut self, samples: &[f32]) -> Tensor<B, 1> {
+    fn forward_chunk(&mut self, samples: &[f32]) -> Tensor<1> {
         let tensor = samples_to_tensor(samples, &self.device);
         let (probabilities, next_context) = self.vad.context_forward(tensor, self.context.clone());
 

@@ -7,7 +7,6 @@ use std::{
 use clap::{Parser, Subcommand};
 
 use sepple::{
-    SeppleBackend,
     debug::audio_logger::AudioLogger,
     dictionary::Dictionary,
     error::SeppleResult,
@@ -89,7 +88,7 @@ fn run_single(input: &[f32]) -> SeppleResult<()> {
     let reporter = model_provider::indicatif_progress_reporter();
     let model_path = model_provider::ensure_downloaded_and_get_path(&reporter)?;
     println!("Loading model");
-    let recognizer = IpaRecognizer::<SeppleBackend>::init_default(model_path)?;
+    let recognizer = IpaRecognizer::init_default(model_path)?;
     println!("Load done");
     let result = recognizer.recognize(input);
     println!("Result: {result}");
@@ -105,7 +104,7 @@ fn run_single(input: &[f32]) -> SeppleResult<()> {
 
 fn run_single_silero(input: &[f32]) {
     println!("Loading model");
-    let mut vad = Vad::<SeppleBackend>::init();
+    let mut vad = Vad::init();
     println!("Load done");
     let result = vad.process_audio(input);
 

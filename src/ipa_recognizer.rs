@@ -1,6 +1,6 @@
 use std::{collections::HashMap, fs, path::Path};
 
-use burn::{Tensor, prelude::Backend, tensor::backend::BackendTypes};
+use burn::{Tensor, tensor::Device};
 
 use burn_store::{BurnpackStore, ModuleSnapshot};
 use multipa_model::MultipaModel;
@@ -11,14 +11,14 @@ use crate::error::{SeppleError, SeppleResult};
 const PAD_TOKEN_ID: i32 = 310;
 const VOCAB_JSON: &str = include_str!("../model/vocab.json");
 
-pub struct IpaRecognizer<B: Backend + BackendTypes> {
-    device: B::Device,
-    model: MultipaModel<B>,
+pub struct IpaRecognizer {
+    device: Device,
+    model: MultipaModel,
     vocab: HashMap<i32, String>,
     padding_token_id: i32,
 }
 
-impl<B: Backend + BackendTypes> IpaRecognizer<B> {
+impl IpaRecognizer {
     pub fn init_default<P>(model_path: P) -> SeppleResult<Self>
     where
         P: AsRef<Path>,
@@ -34,7 +34,7 @@ impl<B: Backend + BackendTypes> IpaRecognizer<B> {
     where
         P: AsRef<Path>,
     {
-        let device = B::Device::default();
+        let device = Device::default();
 
         let mut model = MultipaModel::new(&device);
         let mut store = BurnpackStore::from_file(model_path);
@@ -66,7 +66,7 @@ impl<B: Backend + BackendTypes> IpaRecognizer<B> {
 
         predicted_ids
             .to_data()
-            .into_vec::<i32>()
+            .try_into_vec::<i32>()
             .expect("Failed to convert tensor to Vec<i32>")
     }
 
@@ -141,12 +141,9 @@ pub fn load_padding_token_id_from_config(path: &str) -> i32 {
         .expect("pad_token_id to be a number") as i32
 }
 
-pub fn samples_to_tensor<B>(samples: &[f32], device: &B::Device) -> Tensor<B, 2>
-where
-    B: Backend + BackendTypes,
-{
+pub fn samples_to_tensor(samples: &[f32], device: &Device) -> Tensor<2> {
     // reshape to [1, len]
-    Tensor::<B, 1>::from_floats(samples, device).unsqueeze_dim(0)
+    Tensor::<1>::from_floats(samples, device).unsqueeze_dim(0)
 }
 
 pub fn z_score_normalize<I>(input: I) -> Vec<f32>

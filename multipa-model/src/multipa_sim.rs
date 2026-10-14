@@ -1,5 +1,6 @@
 #![allow(clippy::all)]
 // Generated from ONNX "../model/multipa_sim.onnx" by burn-onnx
+extern crate alloc;
 use burn::nn::LayerNorm;
 use burn::nn::LayerNormConfig;
 use burn::nn::Linear;
@@ -13,31 +14,30 @@ use burn_store::BurnpackStore;
 use burn_store::ModuleSnapshot;
 
 #[derive(Module, Debug)]
-pub struct Submodule1<B: Backend> {
-    conv1d1: Conv1d<B>,
-    layernormalization1: LayerNorm<B>,
-    conv1d2: Conv1d<B>,
-    layernormalization2: LayerNorm<B>,
-    conv1d3: Conv1d<B>,
-    layernormalization3: LayerNorm<B>,
-    conv1d4: Conv1d<B>,
-    layernormalization4: LayerNorm<B>,
-    conv1d5: Conv1d<B>,
-    layernormalization5: LayerNorm<B>,
-    conv1d6: Conv1d<B>,
-    layernormalization6: LayerNorm<B>,
-    conv1d7: Conv1d<B>,
-    layernormalization7: LayerNorm<B>,
-    layernormalization8: LayerNorm<B>,
-    linear1: Linear<B>,
-    conv1d8: Conv1d<B>,
-    phantom: core::marker::PhantomData<B>,
+pub struct Submodule1 {
+    conv1d1: Conv1d,
+    layernormalization1: LayerNorm,
+    conv1d2: Conv1d,
+    layernormalization2: LayerNorm,
+    conv1d3: Conv1d,
+    layernormalization3: LayerNorm,
+    conv1d4: Conv1d,
+    layernormalization4: LayerNorm,
+    conv1d5: Conv1d,
+    layernormalization5: LayerNorm,
+    conv1d6: Conv1d,
+    layernormalization6: LayerNorm,
+    conv1d7: Conv1d,
+    layernormalization7: LayerNorm,
+    layernormalization8: LayerNorm,
+    linear1: Linear,
+    conv1d8: Conv1d,
     #[module(skip)]
-    device: B::Device,
+    device: Device,
 }
-impl<B: Backend> Submodule1<B> {
+impl Submodule1 {
     #[allow(unused_variables)]
-    pub fn new(device: &B::Device) -> Self {
+    pub fn new(device: &Device) -> Self {
         let conv1d1 = Conv1dConfig::new(1, 512, 10)
             .with_stride(5)
             .with_padding(PaddingConfig1d::Valid)
@@ -145,15 +145,14 @@ impl<B: Backend> Submodule1<B> {
             layernormalization8,
             linear1,
             conv1d8,
-            phantom: core::marker::PhantomData,
             device: device.clone(),
         }
     }
     #[allow(clippy::let_and_return, clippy::approx_constant)]
     pub fn forward(
         &self,
-        input_values: Tensor<B, 2>,
-    ) -> (Tensor<B, 3>, [i64; 1], i64, Tensor<B, 4, Bool>, [i64; 1]) {
+        input_values: Tensor<2>,
+    ) -> (Tensor<3>, [i64; 1], i64, Tensor<4, Bool>, [i64; 1]) {
         let shape1_out1: [i64; 1] = {
             let axes = &input_values.clone().dims()[0..1];
             let mut output = [0i64; 1];
@@ -182,7 +181,7 @@ impl<B: Backend> Submodule1<B> {
         let div3_out1 = add2_out1 / constant359_out1;
         let constant278_out1 = 1i64;
         let add3_out1 = constant278_out1 + div3_out1;
-        let unsqueeze1_out1: Tensor<B, 3> = input_values.unsqueeze_dims::<3>(&[1]);
+        let unsqueeze1_out1: Tensor<3> = input_values.unsqueeze_dims::<3>(&[1]);
         let conv1d1_out1 = self.conv1d1.forward(unsqueeze1_out1);
         let transpose1_out1 = conv1d1_out1.permute([0, 2, 1]);
         let layernormalization1_out1 = {
@@ -262,19 +261,18 @@ impl<B: Backend> Submodule1<B> {
         };
         let linear1_out1 = self.linear1.forward(layernormalization8_out1);
         let range1_out1 = {
-            let __start = 0i64;
-            let __limit = add3_out1;
-            let __delta = 1i64;
-            assert!(__delta != 0);
-            let __n = ((__limit - __start) as f64 / __delta as f64)
+            let start = 0i64;
+            let delta = 1i64;
+            assert!(delta != 0);
+            let n = (((add3_out1 as i128 - start as i128) as f64) / delta as f64)
                 .ceil()
                 .max(0.0) as i64;
-            Tensor::arange(0..__n, &self.device)
+            Tensor::arange(0..n, &self.device)
                 .cast(burn::tensor::DType::I64)
-                .mul_scalar(__delta)
-                .add_scalar(__start)
+                .mul_scalar(delta)
+                .add_scalar(start)
         };
-        let unsqueeze2_out1: Tensor<B, 4, Int> = range1_out1.unsqueeze_dims::<4>(&[0, 1, 3]);
+        let unsqueeze2_out1: Tensor<4, Int> = range1_out1.unsqueeze_dims::<4>(&[0, 1, 3]);
         let constant277_out1 = 0i64;
         let greaterorequal1_out1 = unsqueeze2_out1.greater_equal_elem(constant277_out1);
         let constant360_out1: [i64; 1] = [1i64];
@@ -293,7 +291,7 @@ impl<B: Backend> Submodule1<B> {
             let mut shape = onnx_shape;
             #[allow(clippy::needless_range_loop)]
             for i in 0..4usize {
-                let dim_offset = 4usize - 4usize + i;
+                let dim_offset = i;
                 if shape[dim_offset] == 1 && input_dims[i] > 1 {
                     shape[dim_offset] = input_dims[i] as i64;
                 }
@@ -316,66 +314,65 @@ impl<B: Backend> Submodule1<B> {
     }
 }
 #[derive(Module, Debug)]
-pub struct Submodule2<B: Backend> {
-    layernormalization9: LayerNorm<B>,
-    linear2: Linear<B>,
-    constant37: burn::module::Param<Tensor<B, 1>>,
-    constant35: burn::module::Param<Tensor<B, 1>>,
-    constant36: burn::module::Param<Tensor<B, 1>>,
-    constant282: burn::module::Param<Tensor<B, 1>>,
-    linear3: Linear<B>,
-    layernormalization10: LayerNorm<B>,
-    linear4: Linear<B>,
-    linear5: Linear<B>,
-    layernormalization11: LayerNorm<B>,
-    linear6: Linear<B>,
-    constant47: burn::module::Param<Tensor<B, 1>>,
-    constant45: burn::module::Param<Tensor<B, 1>>,
-    constant46: burn::module::Param<Tensor<B, 1>>,
-    linear7: Linear<B>,
-    phantom: core::marker::PhantomData<B>,
+pub struct Submodule2 {
+    layernormalization9: LayerNorm,
+    linear2: Linear,
+    constant37: burn::module::Param<Tensor<1>>,
+    constant35: burn::module::Param<Tensor<1>>,
+    constant36: burn::module::Param<Tensor<1>>,
+    constant282: burn::module::Param<Tensor<1>>,
+    linear3: Linear,
+    layernormalization10: LayerNorm,
+    linear4: Linear,
+    linear5: Linear,
+    layernormalization11: LayerNorm,
+    linear6: Linear,
+    constant47: burn::module::Param<Tensor<1>>,
+    constant45: burn::module::Param<Tensor<1>>,
+    constant46: burn::module::Param<Tensor<1>>,
+    linear7: Linear,
     #[module(skip)]
-    device: B::Device,
+    device: Device,
 }
-impl<B: Backend> Submodule2<B> {
+impl Submodule2 {
     #[allow(unused_variables)]
-    pub fn new(device: &B::Device) -> Self {
+    pub fn new(device: &Device) -> Self {
         let layernormalization9 = LayerNormConfig::new(1024)
             .with_epsilon(0.000009999999747378752f64)
             .with_bias(true)
             .init(device);
         let linear2 = LinearConfig::new(1024, 3072).with_bias(false).init(device);
-        let constant37: burn::module::Param<Tensor<B, 1>> = burn::module::Param::uninitialized(
+        let constant37: burn::module::Param<Tensor<1>> = burn::module::Param::uninitialized(
             burn::module::ParamId::new(),
             move |device, _require_grad| {
-                Tensor::<B, 1>::zeros([1024], (device, burn::tensor::DType::F32))
+                Tensor::<1>::zeros([1024], (device, burn::tensor::DType::F32))
             },
             device.clone(),
             false,
             [1024].into(),
         );
-        let constant35: burn::module::Param<Tensor<B, 1>> = burn::module::Param::uninitialized(
+        let constant35: burn::module::Param<Tensor<1>> = burn::module::Param::uninitialized(
             burn::module::ParamId::new(),
             move |device, _require_grad| {
-                Tensor::<B, 1>::zeros([1024], (device, burn::tensor::DType::F32))
+                Tensor::<1>::zeros([1024], (device, burn::tensor::DType::F32))
             },
             device.clone(),
             false,
             [1024].into(),
         );
-        let constant36: burn::module::Param<Tensor<B, 1>> = burn::module::Param::uninitialized(
+        let constant36: burn::module::Param<Tensor<1>> = burn::module::Param::uninitialized(
             burn::module::ParamId::new(),
             move |device, _require_grad| {
-                Tensor::<B, 1>::zeros([1024], (device, burn::tensor::DType::F32))
+                Tensor::<1>::zeros([1024], (device, burn::tensor::DType::F32))
             },
             device.clone(),
             false,
             [1024].into(),
         );
-        let constant282: burn::module::Param<Tensor<B, 1>> = burn::module::Param::uninitialized(
+        let constant282: burn::module::Param<Tensor<1>> = burn::module::Param::uninitialized(
             burn::module::ParamId::new(),
             move |device, _require_grad| {
-                Tensor::<B, 1>::from_data(
+                Tensor::<1>::from_data(
                     burn::tensor::TensorData::from([0.3535533845424652f64]),
                     (device, burn::tensor::DType::F32),
                 )
@@ -396,28 +393,28 @@ impl<B: Backend> Submodule2<B> {
             .with_bias(true)
             .init(device);
         let linear6 = LinearConfig::new(1024, 3072).with_bias(false).init(device);
-        let constant47: burn::module::Param<Tensor<B, 1>> = burn::module::Param::uninitialized(
+        let constant47: burn::module::Param<Tensor<1>> = burn::module::Param::uninitialized(
             burn::module::ParamId::new(),
             move |device, _require_grad| {
-                Tensor::<B, 1>::zeros([1024], (device, burn::tensor::DType::F32))
+                Tensor::<1>::zeros([1024], (device, burn::tensor::DType::F32))
             },
             device.clone(),
             false,
             [1024].into(),
         );
-        let constant45: burn::module::Param<Tensor<B, 1>> = burn::module::Param::uninitialized(
+        let constant45: burn::module::Param<Tensor<1>> = burn::module::Param::uninitialized(
             burn::module::ParamId::new(),
             move |device, _require_grad| {
-                Tensor::<B, 1>::zeros([1024], (device, burn::tensor::DType::F32))
+                Tensor::<1>::zeros([1024], (device, burn::tensor::DType::F32))
             },
             device.clone(),
             false,
             [1024].into(),
         );
-        let constant46: burn::module::Param<Tensor<B, 1>> = burn::module::Param::uninitialized(
+        let constant46: burn::module::Param<Tensor<1>> = burn::module::Param::uninitialized(
             burn::module::ParamId::new(),
             move |device, _require_grad| {
-                Tensor::<B, 1>::zeros([1024], (device, burn::tensor::DType::F32))
+                Tensor::<1>::zeros([1024], (device, burn::tensor::DType::F32))
             },
             device.clone(),
             false,
@@ -441,25 +438,24 @@ impl<B: Backend> Submodule2<B> {
             constant45,
             constant46,
             linear7,
-            phantom: core::marker::PhantomData,
             device: device.clone(),
         }
     }
     #[allow(clippy::let_and_return, clippy::approx_constant)]
     pub fn forward(
         &self,
-        add4_out1: Tensor<B, 3>,
+        add4_out1: Tensor<3>,
         shape1_out1: [i64; 1],
         add3_out1: i64,
-        expand1_out1: Tensor<B, 4, Bool>,
+        expand1_out1: Tensor<4, Bool>,
         constant360_out1: [i64; 1],
     ) -> (
-        Tensor<B, 3>,
+        Tensor<3>,
         [i64; 4],
         [i64; 1],
         [i64; 1],
-        Tensor<B, 1>,
-        Tensor<B, 4>,
+        Tensor<1>,
+        Tensor<4>,
         f32,
         [i64; 3],
     ) {
@@ -530,7 +526,7 @@ impl<B: Backend> Submodule2<B> {
         let constant365_out1 = -340282350000000000000000000000000000000f32;
         let where1_out1 = {
             let cond = expand1_out1;
-            Tensor::<B, 1>::from_data(
+            Tensor::<1>::from_data(
                 burn::tensor::TensorData::from([constant365_out1 as f64]),
                 (&self.device, burn::tensor::DType::F32),
             )
@@ -648,32 +644,31 @@ impl<B: Backend> Submodule2<B> {
     }
 }
 #[derive(Module, Debug)]
-pub struct Submodule3<B: Backend> {
-    layernormalization12: LayerNorm<B>,
-    linear8: Linear<B>,
-    linear9: Linear<B>,
-    layernormalization13: LayerNorm<B>,
-    linear10: Linear<B>,
-    constant57: burn::module::Param<Tensor<B, 1>>,
-    constant55: burn::module::Param<Tensor<B, 1>>,
-    constant56: burn::module::Param<Tensor<B, 1>>,
-    linear11: Linear<B>,
-    layernormalization14: LayerNorm<B>,
-    linear12: Linear<B>,
-    linear13: Linear<B>,
-    layernormalization15: LayerNorm<B>,
-    linear14: Linear<B>,
-    constant67: burn::module::Param<Tensor<B, 1>>,
-    constant65: burn::module::Param<Tensor<B, 1>>,
-    constant66: burn::module::Param<Tensor<B, 1>>,
-    linear15: Linear<B>,
-    phantom: core::marker::PhantomData<B>,
+pub struct Submodule3 {
+    layernormalization12: LayerNorm,
+    linear8: Linear,
+    linear9: Linear,
+    layernormalization13: LayerNorm,
+    linear10: Linear,
+    constant57: burn::module::Param<Tensor<1>>,
+    constant55: burn::module::Param<Tensor<1>>,
+    constant56: burn::module::Param<Tensor<1>>,
+    linear11: Linear,
+    layernormalization14: LayerNorm,
+    linear12: Linear,
+    linear13: Linear,
+    layernormalization15: LayerNorm,
+    linear14: Linear,
+    constant67: burn::module::Param<Tensor<1>>,
+    constant65: burn::module::Param<Tensor<1>>,
+    constant66: burn::module::Param<Tensor<1>>,
+    linear15: Linear,
     #[module(skip)]
-    device: B::Device,
+    device: Device,
 }
-impl<B: Backend> Submodule3<B> {
+impl Submodule3 {
     #[allow(unused_variables)]
-    pub fn new(device: &B::Device) -> Self {
+    pub fn new(device: &Device) -> Self {
         let layernormalization12 = LayerNormConfig::new(1024)
             .with_epsilon(0.000009999999747378752f64)
             .with_bias(true)
@@ -685,28 +680,28 @@ impl<B: Backend> Submodule3<B> {
             .with_bias(true)
             .init(device);
         let linear10 = LinearConfig::new(1024, 3072).with_bias(false).init(device);
-        let constant57: burn::module::Param<Tensor<B, 1>> = burn::module::Param::uninitialized(
+        let constant57: burn::module::Param<Tensor<1>> = burn::module::Param::uninitialized(
             burn::module::ParamId::new(),
             move |device, _require_grad| {
-                Tensor::<B, 1>::zeros([1024], (device, burn::tensor::DType::F32))
+                Tensor::<1>::zeros([1024], (device, burn::tensor::DType::F32))
             },
             device.clone(),
             false,
             [1024].into(),
         );
-        let constant55: burn::module::Param<Tensor<B, 1>> = burn::module::Param::uninitialized(
+        let constant55: burn::module::Param<Tensor<1>> = burn::module::Param::uninitialized(
             burn::module::ParamId::new(),
             move |device, _require_grad| {
-                Tensor::<B, 1>::zeros([1024], (device, burn::tensor::DType::F32))
+                Tensor::<1>::zeros([1024], (device, burn::tensor::DType::F32))
             },
             device.clone(),
             false,
             [1024].into(),
         );
-        let constant56: burn::module::Param<Tensor<B, 1>> = burn::module::Param::uninitialized(
+        let constant56: burn::module::Param<Tensor<1>> = burn::module::Param::uninitialized(
             burn::module::ParamId::new(),
             move |device, _require_grad| {
-                Tensor::<B, 1>::zeros([1024], (device, burn::tensor::DType::F32))
+                Tensor::<1>::zeros([1024], (device, burn::tensor::DType::F32))
             },
             device.clone(),
             false,
@@ -724,28 +719,28 @@ impl<B: Backend> Submodule3<B> {
             .with_bias(true)
             .init(device);
         let linear14 = LinearConfig::new(1024, 3072).with_bias(false).init(device);
-        let constant67: burn::module::Param<Tensor<B, 1>> = burn::module::Param::uninitialized(
+        let constant67: burn::module::Param<Tensor<1>> = burn::module::Param::uninitialized(
             burn::module::ParamId::new(),
             move |device, _require_grad| {
-                Tensor::<B, 1>::zeros([1024], (device, burn::tensor::DType::F32))
+                Tensor::<1>::zeros([1024], (device, burn::tensor::DType::F32))
             },
             device.clone(),
             false,
             [1024].into(),
         );
-        let constant65: burn::module::Param<Tensor<B, 1>> = burn::module::Param::uninitialized(
+        let constant65: burn::module::Param<Tensor<1>> = burn::module::Param::uninitialized(
             burn::module::ParamId::new(),
             move |device, _require_grad| {
-                Tensor::<B, 1>::zeros([1024], (device, burn::tensor::DType::F32))
+                Tensor::<1>::zeros([1024], (device, burn::tensor::DType::F32))
             },
             device.clone(),
             false,
             [1024].into(),
         );
-        let constant66: burn::module::Param<Tensor<B, 1>> = burn::module::Param::uninitialized(
+        let constant66: burn::module::Param<Tensor<1>> = burn::module::Param::uninitialized(
             burn::module::ParamId::new(),
             move |device, _require_grad| {
-                Tensor::<B, 1>::zeros([1024], (device, burn::tensor::DType::F32))
+                Tensor::<1>::zeros([1024], (device, burn::tensor::DType::F32))
             },
             device.clone(),
             false,
@@ -771,22 +766,21 @@ impl<B: Backend> Submodule3<B> {
             constant65,
             constant66,
             linear15,
-            phantom: core::marker::PhantomData,
             device: device.clone(),
         }
     }
     #[allow(clippy::let_and_return, clippy::approx_constant)]
     pub fn forward(
         &self,
-        add15_out1: Tensor<B, 3>,
+        add15_out1: Tensor<3>,
         concat6_out1: [i64; 4],
         constant280_out1: [i64; 1],
         constant361_out1: [i64; 1],
-        constant282_out1: Tensor<B, 1>,
-        where1_out1: Tensor<B, 4>,
+        constant282_out1: Tensor<1>,
+        where1_out1: Tensor<4>,
         constant364_out1: f32,
         concat8_out1: [i64; 3],
-    ) -> Tensor<B, 3> {
+    ) -> Tensor<3> {
         let layernormalization12_out1 = {
             let dtype = add15_out1.clone().dtype();
             self.layernormalization12
@@ -921,32 +915,31 @@ impl<B: Backend> Submodule3<B> {
     }
 }
 #[derive(Module, Debug)]
-pub struct Submodule4<B: Backend> {
-    layernormalization16: LayerNorm<B>,
-    linear16: Linear<B>,
-    linear17: Linear<B>,
-    layernormalization17: LayerNorm<B>,
-    linear18: Linear<B>,
-    constant77: burn::module::Param<Tensor<B, 1>>,
-    constant75: burn::module::Param<Tensor<B, 1>>,
-    constant76: burn::module::Param<Tensor<B, 1>>,
-    linear19: Linear<B>,
-    layernormalization18: LayerNorm<B>,
-    linear20: Linear<B>,
-    linear21: Linear<B>,
-    layernormalization19: LayerNorm<B>,
-    linear22: Linear<B>,
-    constant87: burn::module::Param<Tensor<B, 1>>,
-    constant85: burn::module::Param<Tensor<B, 1>>,
-    constant86: burn::module::Param<Tensor<B, 1>>,
-    linear23: Linear<B>,
-    phantom: core::marker::PhantomData<B>,
+pub struct Submodule4 {
+    layernormalization16: LayerNorm,
+    linear16: Linear,
+    linear17: Linear,
+    layernormalization17: LayerNorm,
+    linear18: Linear,
+    constant77: burn::module::Param<Tensor<1>>,
+    constant75: burn::module::Param<Tensor<1>>,
+    constant76: burn::module::Param<Tensor<1>>,
+    linear19: Linear,
+    layernormalization18: LayerNorm,
+    linear20: Linear,
+    linear21: Linear,
+    layernormalization19: LayerNorm,
+    linear22: Linear,
+    constant87: burn::module::Param<Tensor<1>>,
+    constant85: burn::module::Param<Tensor<1>>,
+    constant86: burn::module::Param<Tensor<1>>,
+    linear23: Linear,
     #[module(skip)]
-    device: B::Device,
+    device: Device,
 }
-impl<B: Backend> Submodule4<B> {
+impl Submodule4 {
     #[allow(unused_variables)]
-    pub fn new(device: &B::Device) -> Self {
+    pub fn new(device: &Device) -> Self {
         let layernormalization16 = LayerNormConfig::new(1024)
             .with_epsilon(0.000009999999747378752f64)
             .with_bias(true)
@@ -958,28 +951,28 @@ impl<B: Backend> Submodule4<B> {
             .with_bias(true)
             .init(device);
         let linear18 = LinearConfig::new(1024, 3072).with_bias(false).init(device);
-        let constant77: burn::module::Param<Tensor<B, 1>> = burn::module::Param::uninitialized(
+        let constant77: burn::module::Param<Tensor<1>> = burn::module::Param::uninitialized(
             burn::module::ParamId::new(),
             move |device, _require_grad| {
-                Tensor::<B, 1>::zeros([1024], (device, burn::tensor::DType::F32))
+                Tensor::<1>::zeros([1024], (device, burn::tensor::DType::F32))
             },
             device.clone(),
             false,
             [1024].into(),
         );
-        let constant75: burn::module::Param<Tensor<B, 1>> = burn::module::Param::uninitialized(
+        let constant75: burn::module::Param<Tensor<1>> = burn::module::Param::uninitialized(
             burn::module::ParamId::new(),
             move |device, _require_grad| {
-                Tensor::<B, 1>::zeros([1024], (device, burn::tensor::DType::F32))
+                Tensor::<1>::zeros([1024], (device, burn::tensor::DType::F32))
             },
             device.clone(),
             false,
             [1024].into(),
         );
-        let constant76: burn::module::Param<Tensor<B, 1>> = burn::module::Param::uninitialized(
+        let constant76: burn::module::Param<Tensor<1>> = burn::module::Param::uninitialized(
             burn::module::ParamId::new(),
             move |device, _require_grad| {
-                Tensor::<B, 1>::zeros([1024], (device, burn::tensor::DType::F32))
+                Tensor::<1>::zeros([1024], (device, burn::tensor::DType::F32))
             },
             device.clone(),
             false,
@@ -997,28 +990,28 @@ impl<B: Backend> Submodule4<B> {
             .with_bias(true)
             .init(device);
         let linear22 = LinearConfig::new(1024, 3072).with_bias(false).init(device);
-        let constant87: burn::module::Param<Tensor<B, 1>> = burn::module::Param::uninitialized(
+        let constant87: burn::module::Param<Tensor<1>> = burn::module::Param::uninitialized(
             burn::module::ParamId::new(),
             move |device, _require_grad| {
-                Tensor::<B, 1>::zeros([1024], (device, burn::tensor::DType::F32))
+                Tensor::<1>::zeros([1024], (device, burn::tensor::DType::F32))
             },
             device.clone(),
             false,
             [1024].into(),
         );
-        let constant85: burn::module::Param<Tensor<B, 1>> = burn::module::Param::uninitialized(
+        let constant85: burn::module::Param<Tensor<1>> = burn::module::Param::uninitialized(
             burn::module::ParamId::new(),
             move |device, _require_grad| {
-                Tensor::<B, 1>::zeros([1024], (device, burn::tensor::DType::F32))
+                Tensor::<1>::zeros([1024], (device, burn::tensor::DType::F32))
             },
             device.clone(),
             false,
             [1024].into(),
         );
-        let constant86: burn::module::Param<Tensor<B, 1>> = burn::module::Param::uninitialized(
+        let constant86: burn::module::Param<Tensor<1>> = burn::module::Param::uninitialized(
             burn::module::ParamId::new(),
             move |device, _require_grad| {
-                Tensor::<B, 1>::zeros([1024], (device, burn::tensor::DType::F32))
+                Tensor::<1>::zeros([1024], (device, burn::tensor::DType::F32))
             },
             device.clone(),
             false,
@@ -1044,22 +1037,21 @@ impl<B: Backend> Submodule4<B> {
             constant85,
             constant86,
             linear23,
-            phantom: core::marker::PhantomData,
             device: device.clone(),
         }
     }
     #[allow(clippy::let_and_return, clippy::approx_constant)]
     pub fn forward(
         &self,
-        add27_out1: Tensor<B, 3>,
+        add27_out1: Tensor<3>,
         concat6_out1: [i64; 4],
         constant280_out1: [i64; 1],
         constant361_out1: [i64; 1],
-        constant282_out1: Tensor<B, 1>,
-        where1_out1: Tensor<B, 4>,
+        constant282_out1: Tensor<1>,
+        where1_out1: Tensor<4>,
         constant364_out1: f32,
         concat8_out1: [i64; 3],
-    ) -> Tensor<B, 3> {
+    ) -> Tensor<3> {
         let layernormalization16_out1 = {
             let dtype = add27_out1.clone().dtype();
             self.layernormalization16
@@ -1194,32 +1186,31 @@ impl<B: Backend> Submodule4<B> {
     }
 }
 #[derive(Module, Debug)]
-pub struct Submodule5<B: Backend> {
-    layernormalization20: LayerNorm<B>,
-    linear24: Linear<B>,
-    linear25: Linear<B>,
-    layernormalization21: LayerNorm<B>,
-    linear26: Linear<B>,
-    constant97: burn::module::Param<Tensor<B, 1>>,
-    constant95: burn::module::Param<Tensor<B, 1>>,
-    constant96: burn::module::Param<Tensor<B, 1>>,
-    linear27: Linear<B>,
-    layernormalization22: LayerNorm<B>,
-    linear28: Linear<B>,
-    linear29: Linear<B>,
-    layernormalization23: LayerNorm<B>,
-    linear30: Linear<B>,
-    constant107: burn::module::Param<Tensor<B, 1>>,
-    constant105: burn::module::Param<Tensor<B, 1>>,
-    constant106: burn::module::Param<Tensor<B, 1>>,
-    linear31: Linear<B>,
-    phantom: core::marker::PhantomData<B>,
+pub struct Submodule5 {
+    layernormalization20: LayerNorm,
+    linear24: Linear,
+    linear25: Linear,
+    layernormalization21: LayerNorm,
+    linear26: Linear,
+    constant97: burn::module::Param<Tensor<1>>,
+    constant95: burn::module::Param<Tensor<1>>,
+    constant96: burn::module::Param<Tensor<1>>,
+    linear27: Linear,
+    layernormalization22: LayerNorm,
+    linear28: Linear,
+    linear29: Linear,
+    layernormalization23: LayerNorm,
+    linear30: Linear,
+    constant107: burn::module::Param<Tensor<1>>,
+    constant105: burn::module::Param<Tensor<1>>,
+    constant106: burn::module::Param<Tensor<1>>,
+    linear31: Linear,
     #[module(skip)]
-    device: B::Device,
+    device: Device,
 }
-impl<B: Backend> Submodule5<B> {
+impl Submodule5 {
     #[allow(unused_variables)]
-    pub fn new(device: &B::Device) -> Self {
+    pub fn new(device: &Device) -> Self {
         let layernormalization20 = LayerNormConfig::new(1024)
             .with_epsilon(0.000009999999747378752f64)
             .with_bias(true)
@@ -1231,28 +1222,28 @@ impl<B: Backend> Submodule5<B> {
             .with_bias(true)
             .init(device);
         let linear26 = LinearConfig::new(1024, 3072).with_bias(false).init(device);
-        let constant97: burn::module::Param<Tensor<B, 1>> = burn::module::Param::uninitialized(
+        let constant97: burn::module::Param<Tensor<1>> = burn::module::Param::uninitialized(
             burn::module::ParamId::new(),
             move |device, _require_grad| {
-                Tensor::<B, 1>::zeros([1024], (device, burn::tensor::DType::F32))
+                Tensor::<1>::zeros([1024], (device, burn::tensor::DType::F32))
             },
             device.clone(),
             false,
             [1024].into(),
         );
-        let constant95: burn::module::Param<Tensor<B, 1>> = burn::module::Param::uninitialized(
+        let constant95: burn::module::Param<Tensor<1>> = burn::module::Param::uninitialized(
             burn::module::ParamId::new(),
             move |device, _require_grad| {
-                Tensor::<B, 1>::zeros([1024], (device, burn::tensor::DType::F32))
+                Tensor::<1>::zeros([1024], (device, burn::tensor::DType::F32))
             },
             device.clone(),
             false,
             [1024].into(),
         );
-        let constant96: burn::module::Param<Tensor<B, 1>> = burn::module::Param::uninitialized(
+        let constant96: burn::module::Param<Tensor<1>> = burn::module::Param::uninitialized(
             burn::module::ParamId::new(),
             move |device, _require_grad| {
-                Tensor::<B, 1>::zeros([1024], (device, burn::tensor::DType::F32))
+                Tensor::<1>::zeros([1024], (device, burn::tensor::DType::F32))
             },
             device.clone(),
             false,
@@ -1270,28 +1261,28 @@ impl<B: Backend> Submodule5<B> {
             .with_bias(true)
             .init(device);
         let linear30 = LinearConfig::new(1024, 3072).with_bias(false).init(device);
-        let constant107: burn::module::Param<Tensor<B, 1>> = burn::module::Param::uninitialized(
+        let constant107: burn::module::Param<Tensor<1>> = burn::module::Param::uninitialized(
             burn::module::ParamId::new(),
             move |device, _require_grad| {
-                Tensor::<B, 1>::zeros([1024], (device, burn::tensor::DType::F32))
+                Tensor::<1>::zeros([1024], (device, burn::tensor::DType::F32))
             },
             device.clone(),
             false,
             [1024].into(),
         );
-        let constant105: burn::module::Param<Tensor<B, 1>> = burn::module::Param::uninitialized(
+        let constant105: burn::module::Param<Tensor<1>> = burn::module::Param::uninitialized(
             burn::module::ParamId::new(),
             move |device, _require_grad| {
-                Tensor::<B, 1>::zeros([1024], (device, burn::tensor::DType::F32))
+                Tensor::<1>::zeros([1024], (device, burn::tensor::DType::F32))
             },
             device.clone(),
             false,
             [1024].into(),
         );
-        let constant106: burn::module::Param<Tensor<B, 1>> = burn::module::Param::uninitialized(
+        let constant106: burn::module::Param<Tensor<1>> = burn::module::Param::uninitialized(
             burn::module::ParamId::new(),
             move |device, _require_grad| {
-                Tensor::<B, 1>::zeros([1024], (device, burn::tensor::DType::F32))
+                Tensor::<1>::zeros([1024], (device, burn::tensor::DType::F32))
             },
             device.clone(),
             false,
@@ -1317,22 +1308,21 @@ impl<B: Backend> Submodule5<B> {
             constant105,
             constant106,
             linear31,
-            phantom: core::marker::PhantomData,
             device: device.clone(),
         }
     }
     #[allow(clippy::let_and_return, clippy::approx_constant)]
     pub fn forward(
         &self,
-        add39_out1: Tensor<B, 3>,
+        add39_out1: Tensor<3>,
         concat6_out1: [i64; 4],
         constant280_out1: [i64; 1],
         constant361_out1: [i64; 1],
-        constant282_out1: Tensor<B, 1>,
-        where1_out1: Tensor<B, 4>,
+        constant282_out1: Tensor<1>,
+        where1_out1: Tensor<4>,
         constant364_out1: f32,
         concat8_out1: [i64; 3],
-    ) -> Tensor<B, 3> {
+    ) -> Tensor<3> {
         let layernormalization20_out1 = {
             let dtype = add39_out1.clone().dtype();
             self.layernormalization20
@@ -1467,32 +1457,31 @@ impl<B: Backend> Submodule5<B> {
     }
 }
 #[derive(Module, Debug)]
-pub struct Submodule6<B: Backend> {
-    layernormalization24: LayerNorm<B>,
-    linear32: Linear<B>,
-    linear33: Linear<B>,
-    layernormalization25: LayerNorm<B>,
-    linear34: Linear<B>,
-    constant117: burn::module::Param<Tensor<B, 1>>,
-    constant115: burn::module::Param<Tensor<B, 1>>,
-    constant116: burn::module::Param<Tensor<B, 1>>,
-    linear35: Linear<B>,
-    layernormalization26: LayerNorm<B>,
-    linear36: Linear<B>,
-    linear37: Linear<B>,
-    layernormalization27: LayerNorm<B>,
-    linear38: Linear<B>,
-    constant127: burn::module::Param<Tensor<B, 1>>,
-    constant125: burn::module::Param<Tensor<B, 1>>,
-    constant126: burn::module::Param<Tensor<B, 1>>,
-    linear39: Linear<B>,
-    phantom: core::marker::PhantomData<B>,
+pub struct Submodule6 {
+    layernormalization24: LayerNorm,
+    linear32: Linear,
+    linear33: Linear,
+    layernormalization25: LayerNorm,
+    linear34: Linear,
+    constant117: burn::module::Param<Tensor<1>>,
+    constant115: burn::module::Param<Tensor<1>>,
+    constant116: burn::module::Param<Tensor<1>>,
+    linear35: Linear,
+    layernormalization26: LayerNorm,
+    linear36: Linear,
+    linear37: Linear,
+    layernormalization27: LayerNorm,
+    linear38: Linear,
+    constant127: burn::module::Param<Tensor<1>>,
+    constant125: burn::module::Param<Tensor<1>>,
+    constant126: burn::module::Param<Tensor<1>>,
+    linear39: Linear,
     #[module(skip)]
-    device: B::Device,
+    device: Device,
 }
-impl<B: Backend> Submodule6<B> {
+impl Submodule6 {
     #[allow(unused_variables)]
-    pub fn new(device: &B::Device) -> Self {
+    pub fn new(device: &Device) -> Self {
         let layernormalization24 = LayerNormConfig::new(1024)
             .with_epsilon(0.000009999999747378752f64)
             .with_bias(true)
@@ -1504,28 +1493,28 @@ impl<B: Backend> Submodule6<B> {
             .with_bias(true)
             .init(device);
         let linear34 = LinearConfig::new(1024, 3072).with_bias(false).init(device);
-        let constant117: burn::module::Param<Tensor<B, 1>> = burn::module::Param::uninitialized(
+        let constant117: burn::module::Param<Tensor<1>> = burn::module::Param::uninitialized(
             burn::module::ParamId::new(),
             move |device, _require_grad| {
-                Tensor::<B, 1>::zeros([1024], (device, burn::tensor::DType::F32))
+                Tensor::<1>::zeros([1024], (device, burn::tensor::DType::F32))
             },
             device.clone(),
             false,
             [1024].into(),
         );
-        let constant115: burn::module::Param<Tensor<B, 1>> = burn::module::Param::uninitialized(
+        let constant115: burn::module::Param<Tensor<1>> = burn::module::Param::uninitialized(
             burn::module::ParamId::new(),
             move |device, _require_grad| {
-                Tensor::<B, 1>::zeros([1024], (device, burn::tensor::DType::F32))
+                Tensor::<1>::zeros([1024], (device, burn::tensor::DType::F32))
             },
             device.clone(),
             false,
             [1024].into(),
         );
-        let constant116: burn::module::Param<Tensor<B, 1>> = burn::module::Param::uninitialized(
+        let constant116: burn::module::Param<Tensor<1>> = burn::module::Param::uninitialized(
             burn::module::ParamId::new(),
             move |device, _require_grad| {
-                Tensor::<B, 1>::zeros([1024], (device, burn::tensor::DType::F32))
+                Tensor::<1>::zeros([1024], (device, burn::tensor::DType::F32))
             },
             device.clone(),
             false,
@@ -1543,28 +1532,28 @@ impl<B: Backend> Submodule6<B> {
             .with_bias(true)
             .init(device);
         let linear38 = LinearConfig::new(1024, 3072).with_bias(false).init(device);
-        let constant127: burn::module::Param<Tensor<B, 1>> = burn::module::Param::uninitialized(
+        let constant127: burn::module::Param<Tensor<1>> = burn::module::Param::uninitialized(
             burn::module::ParamId::new(),
             move |device, _require_grad| {
-                Tensor::<B, 1>::zeros([1024], (device, burn::tensor::DType::F32))
+                Tensor::<1>::zeros([1024], (device, burn::tensor::DType::F32))
             },
             device.clone(),
             false,
             [1024].into(),
         );
-        let constant125: burn::module::Param<Tensor<B, 1>> = burn::module::Param::uninitialized(
+        let constant125: burn::module::Param<Tensor<1>> = burn::module::Param::uninitialized(
             burn::module::ParamId::new(),
             move |device, _require_grad| {
-                Tensor::<B, 1>::zeros([1024], (device, burn::tensor::DType::F32))
+                Tensor::<1>::zeros([1024], (device, burn::tensor::DType::F32))
             },
             device.clone(),
             false,
             [1024].into(),
         );
-        let constant126: burn::module::Param<Tensor<B, 1>> = burn::module::Param::uninitialized(
+        let constant126: burn::module::Param<Tensor<1>> = burn::module::Param::uninitialized(
             burn::module::ParamId::new(),
             move |device, _require_grad| {
-                Tensor::<B, 1>::zeros([1024], (device, burn::tensor::DType::F32))
+                Tensor::<1>::zeros([1024], (device, burn::tensor::DType::F32))
             },
             device.clone(),
             false,
@@ -1590,22 +1579,21 @@ impl<B: Backend> Submodule6<B> {
             constant125,
             constant126,
             linear39,
-            phantom: core::marker::PhantomData,
             device: device.clone(),
         }
     }
     #[allow(clippy::let_and_return, clippy::approx_constant)]
     pub fn forward(
         &self,
-        add51_out1: Tensor<B, 3>,
+        add51_out1: Tensor<3>,
         concat6_out1: [i64; 4],
         constant280_out1: [i64; 1],
         constant361_out1: [i64; 1],
-        constant282_out1: Tensor<B, 1>,
-        where1_out1: Tensor<B, 4>,
+        constant282_out1: Tensor<1>,
+        where1_out1: Tensor<4>,
         constant364_out1: f32,
         concat8_out1: [i64; 3],
-    ) -> Tensor<B, 3> {
+    ) -> Tensor<3> {
         let layernormalization24_out1 = {
             let dtype = add51_out1.clone().dtype();
             self.layernormalization24
@@ -1740,32 +1728,31 @@ impl<B: Backend> Submodule6<B> {
     }
 }
 #[derive(Module, Debug)]
-pub struct Submodule7<B: Backend> {
-    layernormalization28: LayerNorm<B>,
-    linear40: Linear<B>,
-    linear41: Linear<B>,
-    layernormalization29: LayerNorm<B>,
-    linear42: Linear<B>,
-    constant137: burn::module::Param<Tensor<B, 1>>,
-    constant135: burn::module::Param<Tensor<B, 1>>,
-    constant136: burn::module::Param<Tensor<B, 1>>,
-    linear43: Linear<B>,
-    layernormalization30: LayerNorm<B>,
-    linear44: Linear<B>,
-    linear45: Linear<B>,
-    layernormalization31: LayerNorm<B>,
-    linear46: Linear<B>,
-    constant147: burn::module::Param<Tensor<B, 1>>,
-    constant145: burn::module::Param<Tensor<B, 1>>,
-    constant146: burn::module::Param<Tensor<B, 1>>,
-    linear47: Linear<B>,
-    phantom: core::marker::PhantomData<B>,
+pub struct Submodule7 {
+    layernormalization28: LayerNorm,
+    linear40: Linear,
+    linear41: Linear,
+    layernormalization29: LayerNorm,
+    linear42: Linear,
+    constant137: burn::module::Param<Tensor<1>>,
+    constant135: burn::module::Param<Tensor<1>>,
+    constant136: burn::module::Param<Tensor<1>>,
+    linear43: Linear,
+    layernormalization30: LayerNorm,
+    linear44: Linear,
+    linear45: Linear,
+    layernormalization31: LayerNorm,
+    linear46: Linear,
+    constant147: burn::module::Param<Tensor<1>>,
+    constant145: burn::module::Param<Tensor<1>>,
+    constant146: burn::module::Param<Tensor<1>>,
+    linear47: Linear,
     #[module(skip)]
-    device: B::Device,
+    device: Device,
 }
-impl<B: Backend> Submodule7<B> {
+impl Submodule7 {
     #[allow(unused_variables)]
-    pub fn new(device: &B::Device) -> Self {
+    pub fn new(device: &Device) -> Self {
         let layernormalization28 = LayerNormConfig::new(1024)
             .with_epsilon(0.000009999999747378752f64)
             .with_bias(true)
@@ -1777,28 +1764,28 @@ impl<B: Backend> Submodule7<B> {
             .with_bias(true)
             .init(device);
         let linear42 = LinearConfig::new(1024, 3072).with_bias(false).init(device);
-        let constant137: burn::module::Param<Tensor<B, 1>> = burn::module::Param::uninitialized(
+        let constant137: burn::module::Param<Tensor<1>> = burn::module::Param::uninitialized(
             burn::module::ParamId::new(),
             move |device, _require_grad| {
-                Tensor::<B, 1>::zeros([1024], (device, burn::tensor::DType::F32))
+                Tensor::<1>::zeros([1024], (device, burn::tensor::DType::F32))
             },
             device.clone(),
             false,
             [1024].into(),
         );
-        let constant135: burn::module::Param<Tensor<B, 1>> = burn::module::Param::uninitialized(
+        let constant135: burn::module::Param<Tensor<1>> = burn::module::Param::uninitialized(
             burn::module::ParamId::new(),
             move |device, _require_grad| {
-                Tensor::<B, 1>::zeros([1024], (device, burn::tensor::DType::F32))
+                Tensor::<1>::zeros([1024], (device, burn::tensor::DType::F32))
             },
             device.clone(),
             false,
             [1024].into(),
         );
-        let constant136: burn::module::Param<Tensor<B, 1>> = burn::module::Param::uninitialized(
+        let constant136: burn::module::Param<Tensor<1>> = burn::module::Param::uninitialized(
             burn::module::ParamId::new(),
             move |device, _require_grad| {
-                Tensor::<B, 1>::zeros([1024], (device, burn::tensor::DType::F32))
+                Tensor::<1>::zeros([1024], (device, burn::tensor::DType::F32))
             },
             device.clone(),
             false,
@@ -1816,28 +1803,28 @@ impl<B: Backend> Submodule7<B> {
             .with_bias(true)
             .init(device);
         let linear46 = LinearConfig::new(1024, 3072).with_bias(false).init(device);
-        let constant147: burn::module::Param<Tensor<B, 1>> = burn::module::Param::uninitialized(
+        let constant147: burn::module::Param<Tensor<1>> = burn::module::Param::uninitialized(
             burn::module::ParamId::new(),
             move |device, _require_grad| {
-                Tensor::<B, 1>::zeros([1024], (device, burn::tensor::DType::F32))
+                Tensor::<1>::zeros([1024], (device, burn::tensor::DType::F32))
             },
             device.clone(),
             false,
             [1024].into(),
         );
-        let constant145: burn::module::Param<Tensor<B, 1>> = burn::module::Param::uninitialized(
+        let constant145: burn::module::Param<Tensor<1>> = burn::module::Param::uninitialized(
             burn::module::ParamId::new(),
             move |device, _require_grad| {
-                Tensor::<B, 1>::zeros([1024], (device, burn::tensor::DType::F32))
+                Tensor::<1>::zeros([1024], (device, burn::tensor::DType::F32))
             },
             device.clone(),
             false,
             [1024].into(),
         );
-        let constant146: burn::module::Param<Tensor<B, 1>> = burn::module::Param::uninitialized(
+        let constant146: burn::module::Param<Tensor<1>> = burn::module::Param::uninitialized(
             burn::module::ParamId::new(),
             move |device, _require_grad| {
-                Tensor::<B, 1>::zeros([1024], (device, burn::tensor::DType::F32))
+                Tensor::<1>::zeros([1024], (device, burn::tensor::DType::F32))
             },
             device.clone(),
             false,
@@ -1863,22 +1850,21 @@ impl<B: Backend> Submodule7<B> {
             constant145,
             constant146,
             linear47,
-            phantom: core::marker::PhantomData,
             device: device.clone(),
         }
     }
     #[allow(clippy::let_and_return, clippy::approx_constant)]
     pub fn forward(
         &self,
-        add63_out1: Tensor<B, 3>,
+        add63_out1: Tensor<3>,
         concat6_out1: [i64; 4],
         constant280_out1: [i64; 1],
         constant361_out1: [i64; 1],
-        constant282_out1: Tensor<B, 1>,
-        where1_out1: Tensor<B, 4>,
+        constant282_out1: Tensor<1>,
+        where1_out1: Tensor<4>,
         constant364_out1: f32,
         concat8_out1: [i64; 3],
-    ) -> Tensor<B, 3> {
+    ) -> Tensor<3> {
         let layernormalization28_out1 = {
             let dtype = add63_out1.clone().dtype();
             self.layernormalization28
@@ -2013,32 +1999,31 @@ impl<B: Backend> Submodule7<B> {
     }
 }
 #[derive(Module, Debug)]
-pub struct Submodule8<B: Backend> {
-    layernormalization32: LayerNorm<B>,
-    linear48: Linear<B>,
-    linear49: Linear<B>,
-    layernormalization33: LayerNorm<B>,
-    linear50: Linear<B>,
-    constant157: burn::module::Param<Tensor<B, 1>>,
-    constant155: burn::module::Param<Tensor<B, 1>>,
-    constant156: burn::module::Param<Tensor<B, 1>>,
-    linear51: Linear<B>,
-    layernormalization34: LayerNorm<B>,
-    linear52: Linear<B>,
-    linear53: Linear<B>,
-    layernormalization35: LayerNorm<B>,
-    linear54: Linear<B>,
-    constant167: burn::module::Param<Tensor<B, 1>>,
-    constant165: burn::module::Param<Tensor<B, 1>>,
-    constant166: burn::module::Param<Tensor<B, 1>>,
-    linear55: Linear<B>,
-    phantom: core::marker::PhantomData<B>,
+pub struct Submodule8 {
+    layernormalization32: LayerNorm,
+    linear48: Linear,
+    linear49: Linear,
+    layernormalization33: LayerNorm,
+    linear50: Linear,
+    constant157: burn::module::Param<Tensor<1>>,
+    constant155: burn::module::Param<Tensor<1>>,
+    constant156: burn::module::Param<Tensor<1>>,
+    linear51: Linear,
+    layernormalization34: LayerNorm,
+    linear52: Linear,
+    linear53: Linear,
+    layernormalization35: LayerNorm,
+    linear54: Linear,
+    constant167: burn::module::Param<Tensor<1>>,
+    constant165: burn::module::Param<Tensor<1>>,
+    constant166: burn::module::Param<Tensor<1>>,
+    linear55: Linear,
     #[module(skip)]
-    device: B::Device,
+    device: Device,
 }
-impl<B: Backend> Submodule8<B> {
+impl Submodule8 {
     #[allow(unused_variables)]
-    pub fn new(device: &B::Device) -> Self {
+    pub fn new(device: &Device) -> Self {
         let layernormalization32 = LayerNormConfig::new(1024)
             .with_epsilon(0.000009999999747378752f64)
             .with_bias(true)
@@ -2050,28 +2035,28 @@ impl<B: Backend> Submodule8<B> {
             .with_bias(true)
             .init(device);
         let linear50 = LinearConfig::new(1024, 3072).with_bias(false).init(device);
-        let constant157: burn::module::Param<Tensor<B, 1>> = burn::module::Param::uninitialized(
+        let constant157: burn::module::Param<Tensor<1>> = burn::module::Param::uninitialized(
             burn::module::ParamId::new(),
             move |device, _require_grad| {
-                Tensor::<B, 1>::zeros([1024], (device, burn::tensor::DType::F32))
+                Tensor::<1>::zeros([1024], (device, burn::tensor::DType::F32))
             },
             device.clone(),
             false,
             [1024].into(),
         );
-        let constant155: burn::module::Param<Tensor<B, 1>> = burn::module::Param::uninitialized(
+        let constant155: burn::module::Param<Tensor<1>> = burn::module::Param::uninitialized(
             burn::module::ParamId::new(),
             move |device, _require_grad| {
-                Tensor::<B, 1>::zeros([1024], (device, burn::tensor::DType::F32))
+                Tensor::<1>::zeros([1024], (device, burn::tensor::DType::F32))
             },
             device.clone(),
             false,
             [1024].into(),
         );
-        let constant156: burn::module::Param<Tensor<B, 1>> = burn::module::Param::uninitialized(
+        let constant156: burn::module::Param<Tensor<1>> = burn::module::Param::uninitialized(
             burn::module::ParamId::new(),
             move |device, _require_grad| {
-                Tensor::<B, 1>::zeros([1024], (device, burn::tensor::DType::F32))
+                Tensor::<1>::zeros([1024], (device, burn::tensor::DType::F32))
             },
             device.clone(),
             false,
@@ -2089,28 +2074,28 @@ impl<B: Backend> Submodule8<B> {
             .with_bias(true)
             .init(device);
         let linear54 = LinearConfig::new(1024, 3072).with_bias(false).init(device);
-        let constant167: burn::module::Param<Tensor<B, 1>> = burn::module::Param::uninitialized(
+        let constant167: burn::module::Param<Tensor<1>> = burn::module::Param::uninitialized(
             burn::module::ParamId::new(),
             move |device, _require_grad| {
-                Tensor::<B, 1>::zeros([1024], (device, burn::tensor::DType::F32))
+                Tensor::<1>::zeros([1024], (device, burn::tensor::DType::F32))
             },
             device.clone(),
             false,
             [1024].into(),
         );
-        let constant165: burn::module::Param<Tensor<B, 1>> = burn::module::Param::uninitialized(
+        let constant165: burn::module::Param<Tensor<1>> = burn::module::Param::uninitialized(
             burn::module::ParamId::new(),
             move |device, _require_grad| {
-                Tensor::<B, 1>::zeros([1024], (device, burn::tensor::DType::F32))
+                Tensor::<1>::zeros([1024], (device, burn::tensor::DType::F32))
             },
             device.clone(),
             false,
             [1024].into(),
         );
-        let constant166: burn::module::Param<Tensor<B, 1>> = burn::module::Param::uninitialized(
+        let constant166: burn::module::Param<Tensor<1>> = burn::module::Param::uninitialized(
             burn::module::ParamId::new(),
             move |device, _require_grad| {
-                Tensor::<B, 1>::zeros([1024], (device, burn::tensor::DType::F32))
+                Tensor::<1>::zeros([1024], (device, burn::tensor::DType::F32))
             },
             device.clone(),
             false,
@@ -2136,22 +2121,21 @@ impl<B: Backend> Submodule8<B> {
             constant165,
             constant166,
             linear55,
-            phantom: core::marker::PhantomData,
             device: device.clone(),
         }
     }
     #[allow(clippy::let_and_return, clippy::approx_constant)]
     pub fn forward(
         &self,
-        add75_out1: Tensor<B, 3>,
+        add75_out1: Tensor<3>,
         concat6_out1: [i64; 4],
         constant280_out1: [i64; 1],
         constant361_out1: [i64; 1],
-        constant282_out1: Tensor<B, 1>,
-        where1_out1: Tensor<B, 4>,
+        constant282_out1: Tensor<1>,
+        where1_out1: Tensor<4>,
         constant364_out1: f32,
         concat8_out1: [i64; 3],
-    ) -> Tensor<B, 3> {
+    ) -> Tensor<3> {
         let layernormalization32_out1 = {
             let dtype = add75_out1.clone().dtype();
             self.layernormalization32
@@ -2286,32 +2270,31 @@ impl<B: Backend> Submodule8<B> {
     }
 }
 #[derive(Module, Debug)]
-pub struct Submodule9<B: Backend> {
-    layernormalization36: LayerNorm<B>,
-    linear56: Linear<B>,
-    linear57: Linear<B>,
-    layernormalization37: LayerNorm<B>,
-    linear58: Linear<B>,
-    constant177: burn::module::Param<Tensor<B, 1>>,
-    constant175: burn::module::Param<Tensor<B, 1>>,
-    constant176: burn::module::Param<Tensor<B, 1>>,
-    linear59: Linear<B>,
-    layernormalization38: LayerNorm<B>,
-    linear60: Linear<B>,
-    linear61: Linear<B>,
-    layernormalization39: LayerNorm<B>,
-    linear62: Linear<B>,
-    constant187: burn::module::Param<Tensor<B, 1>>,
-    constant185: burn::module::Param<Tensor<B, 1>>,
-    constant186: burn::module::Param<Tensor<B, 1>>,
-    linear63: Linear<B>,
-    phantom: core::marker::PhantomData<B>,
+pub struct Submodule9 {
+    layernormalization36: LayerNorm,
+    linear56: Linear,
+    linear57: Linear,
+    layernormalization37: LayerNorm,
+    linear58: Linear,
+    constant177: burn::module::Param<Tensor<1>>,
+    constant175: burn::module::Param<Tensor<1>>,
+    constant176: burn::module::Param<Tensor<1>>,
+    linear59: Linear,
+    layernormalization38: LayerNorm,
+    linear60: Linear,
+    linear61: Linear,
+    layernormalization39: LayerNorm,
+    linear62: Linear,
+    constant187: burn::module::Param<Tensor<1>>,
+    constant185: burn::module::Param<Tensor<1>>,
+    constant186: burn::module::Param<Tensor<1>>,
+    linear63: Linear,
     #[module(skip)]
-    device: B::Device,
+    device: Device,
 }
-impl<B: Backend> Submodule9<B> {
+impl Submodule9 {
     #[allow(unused_variables)]
-    pub fn new(device: &B::Device) -> Self {
+    pub fn new(device: &Device) -> Self {
         let layernormalization36 = LayerNormConfig::new(1024)
             .with_epsilon(0.000009999999747378752f64)
             .with_bias(true)
@@ -2323,28 +2306,28 @@ impl<B: Backend> Submodule9<B> {
             .with_bias(true)
             .init(device);
         let linear58 = LinearConfig::new(1024, 3072).with_bias(false).init(device);
-        let constant177: burn::module::Param<Tensor<B, 1>> = burn::module::Param::uninitialized(
+        let constant177: burn::module::Param<Tensor<1>> = burn::module::Param::uninitialized(
             burn::module::ParamId::new(),
             move |device, _require_grad| {
-                Tensor::<B, 1>::zeros([1024], (device, burn::tensor::DType::F32))
+                Tensor::<1>::zeros([1024], (device, burn::tensor::DType::F32))
             },
             device.clone(),
             false,
             [1024].into(),
         );
-        let constant175: burn::module::Param<Tensor<B, 1>> = burn::module::Param::uninitialized(
+        let constant175: burn::module::Param<Tensor<1>> = burn::module::Param::uninitialized(
             burn::module::ParamId::new(),
             move |device, _require_grad| {
-                Tensor::<B, 1>::zeros([1024], (device, burn::tensor::DType::F32))
+                Tensor::<1>::zeros([1024], (device, burn::tensor::DType::F32))
             },
             device.clone(),
             false,
             [1024].into(),
         );
-        let constant176: burn::module::Param<Tensor<B, 1>> = burn::module::Param::uninitialized(
+        let constant176: burn::module::Param<Tensor<1>> = burn::module::Param::uninitialized(
             burn::module::ParamId::new(),
             move |device, _require_grad| {
-                Tensor::<B, 1>::zeros([1024], (device, burn::tensor::DType::F32))
+                Tensor::<1>::zeros([1024], (device, burn::tensor::DType::F32))
             },
             device.clone(),
             false,
@@ -2362,28 +2345,28 @@ impl<B: Backend> Submodule9<B> {
             .with_bias(true)
             .init(device);
         let linear62 = LinearConfig::new(1024, 3072).with_bias(false).init(device);
-        let constant187: burn::module::Param<Tensor<B, 1>> = burn::module::Param::uninitialized(
+        let constant187: burn::module::Param<Tensor<1>> = burn::module::Param::uninitialized(
             burn::module::ParamId::new(),
             move |device, _require_grad| {
-                Tensor::<B, 1>::zeros([1024], (device, burn::tensor::DType::F32))
+                Tensor::<1>::zeros([1024], (device, burn::tensor::DType::F32))
             },
             device.clone(),
             false,
             [1024].into(),
         );
-        let constant185: burn::module::Param<Tensor<B, 1>> = burn::module::Param::uninitialized(
+        let constant185: burn::module::Param<Tensor<1>> = burn::module::Param::uninitialized(
             burn::module::ParamId::new(),
             move |device, _require_grad| {
-                Tensor::<B, 1>::zeros([1024], (device, burn::tensor::DType::F32))
+                Tensor::<1>::zeros([1024], (device, burn::tensor::DType::F32))
             },
             device.clone(),
             false,
             [1024].into(),
         );
-        let constant186: burn::module::Param<Tensor<B, 1>> = burn::module::Param::uninitialized(
+        let constant186: burn::module::Param<Tensor<1>> = burn::module::Param::uninitialized(
             burn::module::ParamId::new(),
             move |device, _require_grad| {
-                Tensor::<B, 1>::zeros([1024], (device, burn::tensor::DType::F32))
+                Tensor::<1>::zeros([1024], (device, burn::tensor::DType::F32))
             },
             device.clone(),
             false,
@@ -2409,22 +2392,21 @@ impl<B: Backend> Submodule9<B> {
             constant185,
             constant186,
             linear63,
-            phantom: core::marker::PhantomData,
             device: device.clone(),
         }
     }
     #[allow(clippy::let_and_return, clippy::approx_constant)]
     pub fn forward(
         &self,
-        add87_out1: Tensor<B, 3>,
+        add87_out1: Tensor<3>,
         concat6_out1: [i64; 4],
         constant280_out1: [i64; 1],
         constant361_out1: [i64; 1],
-        constant282_out1: Tensor<B, 1>,
-        where1_out1: Tensor<B, 4>,
+        constant282_out1: Tensor<1>,
+        where1_out1: Tensor<4>,
         constant364_out1: f32,
         concat8_out1: [i64; 3],
-    ) -> Tensor<B, 3> {
+    ) -> Tensor<3> {
         let layernormalization36_out1 = {
             let dtype = add87_out1.clone().dtype();
             self.layernormalization36
@@ -2559,32 +2541,31 @@ impl<B: Backend> Submodule9<B> {
     }
 }
 #[derive(Module, Debug)]
-pub struct Submodule10<B: Backend> {
-    layernormalization40: LayerNorm<B>,
-    linear64: Linear<B>,
-    linear65: Linear<B>,
-    layernormalization41: LayerNorm<B>,
-    linear66: Linear<B>,
-    constant197: burn::module::Param<Tensor<B, 1>>,
-    constant195: burn::module::Param<Tensor<B, 1>>,
-    constant196: burn::module::Param<Tensor<B, 1>>,
-    linear67: Linear<B>,
-    layernormalization42: LayerNorm<B>,
-    linear68: Linear<B>,
-    linear69: Linear<B>,
-    layernormalization43: LayerNorm<B>,
-    linear70: Linear<B>,
-    constant207: burn::module::Param<Tensor<B, 1>>,
-    constant205: burn::module::Param<Tensor<B, 1>>,
-    constant206: burn::module::Param<Tensor<B, 1>>,
-    linear71: Linear<B>,
-    phantom: core::marker::PhantomData<B>,
+pub struct Submodule10 {
+    layernormalization40: LayerNorm,
+    linear64: Linear,
+    linear65: Linear,
+    layernormalization41: LayerNorm,
+    linear66: Linear,
+    constant197: burn::module::Param<Tensor<1>>,
+    constant195: burn::module::Param<Tensor<1>>,
+    constant196: burn::module::Param<Tensor<1>>,
+    linear67: Linear,
+    layernormalization42: LayerNorm,
+    linear68: Linear,
+    linear69: Linear,
+    layernormalization43: LayerNorm,
+    linear70: Linear,
+    constant207: burn::module::Param<Tensor<1>>,
+    constant205: burn::module::Param<Tensor<1>>,
+    constant206: burn::module::Param<Tensor<1>>,
+    linear71: Linear,
     #[module(skip)]
-    device: B::Device,
+    device: Device,
 }
-impl<B: Backend> Submodule10<B> {
+impl Submodule10 {
     #[allow(unused_variables)]
-    pub fn new(device: &B::Device) -> Self {
+    pub fn new(device: &Device) -> Self {
         let layernormalization40 = LayerNormConfig::new(1024)
             .with_epsilon(0.000009999999747378752f64)
             .with_bias(true)
@@ -2596,28 +2577,28 @@ impl<B: Backend> Submodule10<B> {
             .with_bias(true)
             .init(device);
         let linear66 = LinearConfig::new(1024, 3072).with_bias(false).init(device);
-        let constant197: burn::module::Param<Tensor<B, 1>> = burn::module::Param::uninitialized(
+        let constant197: burn::module::Param<Tensor<1>> = burn::module::Param::uninitialized(
             burn::module::ParamId::new(),
             move |device, _require_grad| {
-                Tensor::<B, 1>::zeros([1024], (device, burn::tensor::DType::F32))
+                Tensor::<1>::zeros([1024], (device, burn::tensor::DType::F32))
             },
             device.clone(),
             false,
             [1024].into(),
         );
-        let constant195: burn::module::Param<Tensor<B, 1>> = burn::module::Param::uninitialized(
+        let constant195: burn::module::Param<Tensor<1>> = burn::module::Param::uninitialized(
             burn::module::ParamId::new(),
             move |device, _require_grad| {
-                Tensor::<B, 1>::zeros([1024], (device, burn::tensor::DType::F32))
+                Tensor::<1>::zeros([1024], (device, burn::tensor::DType::F32))
             },
             device.clone(),
             false,
             [1024].into(),
         );
-        let constant196: burn::module::Param<Tensor<B, 1>> = burn::module::Param::uninitialized(
+        let constant196: burn::module::Param<Tensor<1>> = burn::module::Param::uninitialized(
             burn::module::ParamId::new(),
             move |device, _require_grad| {
-                Tensor::<B, 1>::zeros([1024], (device, burn::tensor::DType::F32))
+                Tensor::<1>::zeros([1024], (device, burn::tensor::DType::F32))
             },
             device.clone(),
             false,
@@ -2635,28 +2616,28 @@ impl<B: Backend> Submodule10<B> {
             .with_bias(true)
             .init(device);
         let linear70 = LinearConfig::new(1024, 3072).with_bias(false).init(device);
-        let constant207: burn::module::Param<Tensor<B, 1>> = burn::module::Param::uninitialized(
+        let constant207: burn::module::Param<Tensor<1>> = burn::module::Param::uninitialized(
             burn::module::ParamId::new(),
             move |device, _require_grad| {
-                Tensor::<B, 1>::zeros([1024], (device, burn::tensor::DType::F32))
+                Tensor::<1>::zeros([1024], (device, burn::tensor::DType::F32))
             },
             device.clone(),
             false,
             [1024].into(),
         );
-        let constant205: burn::module::Param<Tensor<B, 1>> = burn::module::Param::uninitialized(
+        let constant205: burn::module::Param<Tensor<1>> = burn::module::Param::uninitialized(
             burn::module::ParamId::new(),
             move |device, _require_grad| {
-                Tensor::<B, 1>::zeros([1024], (device, burn::tensor::DType::F32))
+                Tensor::<1>::zeros([1024], (device, burn::tensor::DType::F32))
             },
             device.clone(),
             false,
             [1024].into(),
         );
-        let constant206: burn::module::Param<Tensor<B, 1>> = burn::module::Param::uninitialized(
+        let constant206: burn::module::Param<Tensor<1>> = burn::module::Param::uninitialized(
             burn::module::ParamId::new(),
             move |device, _require_grad| {
-                Tensor::<B, 1>::zeros([1024], (device, burn::tensor::DType::F32))
+                Tensor::<1>::zeros([1024], (device, burn::tensor::DType::F32))
             },
             device.clone(),
             false,
@@ -2682,22 +2663,21 @@ impl<B: Backend> Submodule10<B> {
             constant205,
             constant206,
             linear71,
-            phantom: core::marker::PhantomData,
             device: device.clone(),
         }
     }
     #[allow(clippy::let_and_return, clippy::approx_constant)]
     pub fn forward(
         &self,
-        add99_out1: Tensor<B, 3>,
+        add99_out1: Tensor<3>,
         concat6_out1: [i64; 4],
         constant280_out1: [i64; 1],
         constant361_out1: [i64; 1],
-        constant282_out1: Tensor<B, 1>,
-        where1_out1: Tensor<B, 4>,
+        constant282_out1: Tensor<1>,
+        where1_out1: Tensor<4>,
         constant364_out1: f32,
         concat8_out1: [i64; 3],
-    ) -> Tensor<B, 3> {
+    ) -> Tensor<3> {
         let layernormalization40_out1 = {
             let dtype = add99_out1.clone().dtype();
             self.layernormalization40
@@ -2832,32 +2812,31 @@ impl<B: Backend> Submodule10<B> {
     }
 }
 #[derive(Module, Debug)]
-pub struct Submodule11<B: Backend> {
-    layernormalization44: LayerNorm<B>,
-    linear72: Linear<B>,
-    linear73: Linear<B>,
-    layernormalization45: LayerNorm<B>,
-    linear74: Linear<B>,
-    constant217: burn::module::Param<Tensor<B, 1>>,
-    constant215: burn::module::Param<Tensor<B, 1>>,
-    constant216: burn::module::Param<Tensor<B, 1>>,
-    linear75: Linear<B>,
-    layernormalization46: LayerNorm<B>,
-    linear76: Linear<B>,
-    linear77: Linear<B>,
-    layernormalization47: LayerNorm<B>,
-    linear78: Linear<B>,
-    constant227: burn::module::Param<Tensor<B, 1>>,
-    constant225: burn::module::Param<Tensor<B, 1>>,
-    constant226: burn::module::Param<Tensor<B, 1>>,
-    linear79: Linear<B>,
-    phantom: core::marker::PhantomData<B>,
+pub struct Submodule11 {
+    layernormalization44: LayerNorm,
+    linear72: Linear,
+    linear73: Linear,
+    layernormalization45: LayerNorm,
+    linear74: Linear,
+    constant217: burn::module::Param<Tensor<1>>,
+    constant215: burn::module::Param<Tensor<1>>,
+    constant216: burn::module::Param<Tensor<1>>,
+    linear75: Linear,
+    layernormalization46: LayerNorm,
+    linear76: Linear,
+    linear77: Linear,
+    layernormalization47: LayerNorm,
+    linear78: Linear,
+    constant227: burn::module::Param<Tensor<1>>,
+    constant225: burn::module::Param<Tensor<1>>,
+    constant226: burn::module::Param<Tensor<1>>,
+    linear79: Linear,
     #[module(skip)]
-    device: B::Device,
+    device: Device,
 }
-impl<B: Backend> Submodule11<B> {
+impl Submodule11 {
     #[allow(unused_variables)]
-    pub fn new(device: &B::Device) -> Self {
+    pub fn new(device: &Device) -> Self {
         let layernormalization44 = LayerNormConfig::new(1024)
             .with_epsilon(0.000009999999747378752f64)
             .with_bias(true)
@@ -2869,28 +2848,28 @@ impl<B: Backend> Submodule11<B> {
             .with_bias(true)
             .init(device);
         let linear74 = LinearConfig::new(1024, 3072).with_bias(false).init(device);
-        let constant217: burn::module::Param<Tensor<B, 1>> = burn::module::Param::uninitialized(
+        let constant217: burn::module::Param<Tensor<1>> = burn::module::Param::uninitialized(
             burn::module::ParamId::new(),
             move |device, _require_grad| {
-                Tensor::<B, 1>::zeros([1024], (device, burn::tensor::DType::F32))
+                Tensor::<1>::zeros([1024], (device, burn::tensor::DType::F32))
             },
             device.clone(),
             false,
             [1024].into(),
         );
-        let constant215: burn::module::Param<Tensor<B, 1>> = burn::module::Param::uninitialized(
+        let constant215: burn::module::Param<Tensor<1>> = burn::module::Param::uninitialized(
             burn::module::ParamId::new(),
             move |device, _require_grad| {
-                Tensor::<B, 1>::zeros([1024], (device, burn::tensor::DType::F32))
+                Tensor::<1>::zeros([1024], (device, burn::tensor::DType::F32))
             },
             device.clone(),
             false,
             [1024].into(),
         );
-        let constant216: burn::module::Param<Tensor<B, 1>> = burn::module::Param::uninitialized(
+        let constant216: burn::module::Param<Tensor<1>> = burn::module::Param::uninitialized(
             burn::module::ParamId::new(),
             move |device, _require_grad| {
-                Tensor::<B, 1>::zeros([1024], (device, burn::tensor::DType::F32))
+                Tensor::<1>::zeros([1024], (device, burn::tensor::DType::F32))
             },
             device.clone(),
             false,
@@ -2908,28 +2887,28 @@ impl<B: Backend> Submodule11<B> {
             .with_bias(true)
             .init(device);
         let linear78 = LinearConfig::new(1024, 3072).with_bias(false).init(device);
-        let constant227: burn::module::Param<Tensor<B, 1>> = burn::module::Param::uninitialized(
+        let constant227: burn::module::Param<Tensor<1>> = burn::module::Param::uninitialized(
             burn::module::ParamId::new(),
             move |device, _require_grad| {
-                Tensor::<B, 1>::zeros([1024], (device, burn::tensor::DType::F32))
+                Tensor::<1>::zeros([1024], (device, burn::tensor::DType::F32))
             },
             device.clone(),
             false,
             [1024].into(),
         );
-        let constant225: burn::module::Param<Tensor<B, 1>> = burn::module::Param::uninitialized(
+        let constant225: burn::module::Param<Tensor<1>> = burn::module::Param::uninitialized(
             burn::module::ParamId::new(),
             move |device, _require_grad| {
-                Tensor::<B, 1>::zeros([1024], (device, burn::tensor::DType::F32))
+                Tensor::<1>::zeros([1024], (device, burn::tensor::DType::F32))
             },
             device.clone(),
             false,
             [1024].into(),
         );
-        let constant226: burn::module::Param<Tensor<B, 1>> = burn::module::Param::uninitialized(
+        let constant226: burn::module::Param<Tensor<1>> = burn::module::Param::uninitialized(
             burn::module::ParamId::new(),
             move |device, _require_grad| {
-                Tensor::<B, 1>::zeros([1024], (device, burn::tensor::DType::F32))
+                Tensor::<1>::zeros([1024], (device, burn::tensor::DType::F32))
             },
             device.clone(),
             false,
@@ -2955,22 +2934,21 @@ impl<B: Backend> Submodule11<B> {
             constant225,
             constant226,
             linear79,
-            phantom: core::marker::PhantomData,
             device: device.clone(),
         }
     }
     #[allow(clippy::let_and_return, clippy::approx_constant)]
     pub fn forward(
         &self,
-        add111_out1: Tensor<B, 3>,
+        add111_out1: Tensor<3>,
         concat6_out1: [i64; 4],
         constant280_out1: [i64; 1],
         constant361_out1: [i64; 1],
-        constant282_out1: Tensor<B, 1>,
-        where1_out1: Tensor<B, 4>,
+        constant282_out1: Tensor<1>,
+        where1_out1: Tensor<4>,
         constant364_out1: f32,
         concat8_out1: [i64; 3],
-    ) -> Tensor<B, 3> {
+    ) -> Tensor<3> {
         let layernormalization44_out1 = {
             let dtype = add111_out1.clone().dtype();
             self.layernormalization44
@@ -3105,32 +3083,31 @@ impl<B: Backend> Submodule11<B> {
     }
 }
 #[derive(Module, Debug)]
-pub struct Submodule12<B: Backend> {
-    layernormalization48: LayerNorm<B>,
-    linear80: Linear<B>,
-    linear81: Linear<B>,
-    layernormalization49: LayerNorm<B>,
-    linear82: Linear<B>,
-    constant237: burn::module::Param<Tensor<B, 1>>,
-    constant235: burn::module::Param<Tensor<B, 1>>,
-    constant236: burn::module::Param<Tensor<B, 1>>,
-    linear83: Linear<B>,
-    layernormalization50: LayerNorm<B>,
-    linear84: Linear<B>,
-    linear85: Linear<B>,
-    layernormalization51: LayerNorm<B>,
-    linear86: Linear<B>,
-    constant247: burn::module::Param<Tensor<B, 1>>,
-    constant245: burn::module::Param<Tensor<B, 1>>,
-    constant246: burn::module::Param<Tensor<B, 1>>,
-    linear87: Linear<B>,
-    phantom: core::marker::PhantomData<B>,
+pub struct Submodule12 {
+    layernormalization48: LayerNorm,
+    linear80: Linear,
+    linear81: Linear,
+    layernormalization49: LayerNorm,
+    linear82: Linear,
+    constant237: burn::module::Param<Tensor<1>>,
+    constant235: burn::module::Param<Tensor<1>>,
+    constant236: burn::module::Param<Tensor<1>>,
+    linear83: Linear,
+    layernormalization50: LayerNorm,
+    linear84: Linear,
+    linear85: Linear,
+    layernormalization51: LayerNorm,
+    linear86: Linear,
+    constant247: burn::module::Param<Tensor<1>>,
+    constant245: burn::module::Param<Tensor<1>>,
+    constant246: burn::module::Param<Tensor<1>>,
+    linear87: Linear,
     #[module(skip)]
-    device: B::Device,
+    device: Device,
 }
-impl<B: Backend> Submodule12<B> {
+impl Submodule12 {
     #[allow(unused_variables)]
-    pub fn new(device: &B::Device) -> Self {
+    pub fn new(device: &Device) -> Self {
         let layernormalization48 = LayerNormConfig::new(1024)
             .with_epsilon(0.000009999999747378752f64)
             .with_bias(true)
@@ -3142,28 +3119,28 @@ impl<B: Backend> Submodule12<B> {
             .with_bias(true)
             .init(device);
         let linear82 = LinearConfig::new(1024, 3072).with_bias(false).init(device);
-        let constant237: burn::module::Param<Tensor<B, 1>> = burn::module::Param::uninitialized(
+        let constant237: burn::module::Param<Tensor<1>> = burn::module::Param::uninitialized(
             burn::module::ParamId::new(),
             move |device, _require_grad| {
-                Tensor::<B, 1>::zeros([1024], (device, burn::tensor::DType::F32))
+                Tensor::<1>::zeros([1024], (device, burn::tensor::DType::F32))
             },
             device.clone(),
             false,
             [1024].into(),
         );
-        let constant235: burn::module::Param<Tensor<B, 1>> = burn::module::Param::uninitialized(
+        let constant235: burn::module::Param<Tensor<1>> = burn::module::Param::uninitialized(
             burn::module::ParamId::new(),
             move |device, _require_grad| {
-                Tensor::<B, 1>::zeros([1024], (device, burn::tensor::DType::F32))
+                Tensor::<1>::zeros([1024], (device, burn::tensor::DType::F32))
             },
             device.clone(),
             false,
             [1024].into(),
         );
-        let constant236: burn::module::Param<Tensor<B, 1>> = burn::module::Param::uninitialized(
+        let constant236: burn::module::Param<Tensor<1>> = burn::module::Param::uninitialized(
             burn::module::ParamId::new(),
             move |device, _require_grad| {
-                Tensor::<B, 1>::zeros([1024], (device, burn::tensor::DType::F32))
+                Tensor::<1>::zeros([1024], (device, burn::tensor::DType::F32))
             },
             device.clone(),
             false,
@@ -3181,28 +3158,28 @@ impl<B: Backend> Submodule12<B> {
             .with_bias(true)
             .init(device);
         let linear86 = LinearConfig::new(1024, 3072).with_bias(false).init(device);
-        let constant247: burn::module::Param<Tensor<B, 1>> = burn::module::Param::uninitialized(
+        let constant247: burn::module::Param<Tensor<1>> = burn::module::Param::uninitialized(
             burn::module::ParamId::new(),
             move |device, _require_grad| {
-                Tensor::<B, 1>::zeros([1024], (device, burn::tensor::DType::F32))
+                Tensor::<1>::zeros([1024], (device, burn::tensor::DType::F32))
             },
             device.clone(),
             false,
             [1024].into(),
         );
-        let constant245: burn::module::Param<Tensor<B, 1>> = burn::module::Param::uninitialized(
+        let constant245: burn::module::Param<Tensor<1>> = burn::module::Param::uninitialized(
             burn::module::ParamId::new(),
             move |device, _require_grad| {
-                Tensor::<B, 1>::zeros([1024], (device, burn::tensor::DType::F32))
+                Tensor::<1>::zeros([1024], (device, burn::tensor::DType::F32))
             },
             device.clone(),
             false,
             [1024].into(),
         );
-        let constant246: burn::module::Param<Tensor<B, 1>> = burn::module::Param::uninitialized(
+        let constant246: burn::module::Param<Tensor<1>> = burn::module::Param::uninitialized(
             burn::module::ParamId::new(),
             move |device, _require_grad| {
-                Tensor::<B, 1>::zeros([1024], (device, burn::tensor::DType::F32))
+                Tensor::<1>::zeros([1024], (device, burn::tensor::DType::F32))
             },
             device.clone(),
             false,
@@ -3228,22 +3205,21 @@ impl<B: Backend> Submodule12<B> {
             constant245,
             constant246,
             linear87,
-            phantom: core::marker::PhantomData,
             device: device.clone(),
         }
     }
     #[allow(clippy::let_and_return, clippy::approx_constant)]
     pub fn forward(
         &self,
-        add123_out1: Tensor<B, 3>,
+        add123_out1: Tensor<3>,
         concat6_out1: [i64; 4],
         constant280_out1: [i64; 1],
         constant361_out1: [i64; 1],
-        constant282_out1: Tensor<B, 1>,
-        where1_out1: Tensor<B, 4>,
+        constant282_out1: Tensor<1>,
+        where1_out1: Tensor<4>,
         constant364_out1: f32,
         concat8_out1: [i64; 3],
-    ) -> Tensor<B, 3> {
+    ) -> Tensor<3> {
         let layernormalization48_out1 = {
             let dtype = add123_out1.clone().dtype();
             self.layernormalization48
@@ -3378,37 +3354,36 @@ impl<B: Backend> Submodule12<B> {
     }
 }
 #[derive(Module, Debug)]
-pub struct Submodule13<B: Backend> {
-    layernormalization52: LayerNorm<B>,
-    linear88: Linear<B>,
-    linear89: Linear<B>,
-    layernormalization53: LayerNorm<B>,
-    linear90: Linear<B>,
-    constant257: burn::module::Param<Tensor<B, 1>>,
-    constant255: burn::module::Param<Tensor<B, 1>>,
-    constant256: burn::module::Param<Tensor<B, 1>>,
-    linear91: Linear<B>,
-    layernormalization54: LayerNorm<B>,
-    linear92: Linear<B>,
-    linear93: Linear<B>,
-    layernormalization55: LayerNorm<B>,
-    linear94: Linear<B>,
-    constant267: burn::module::Param<Tensor<B, 1>>,
-    constant265: burn::module::Param<Tensor<B, 1>>,
-    constant266: burn::module::Param<Tensor<B, 1>>,
-    linear95: Linear<B>,
-    layernormalization56: LayerNorm<B>,
-    linear96: Linear<B>,
-    linear97: Linear<B>,
-    layernormalization57: LayerNorm<B>,
-    linear98: Linear<B>,
-    phantom: core::marker::PhantomData<B>,
+pub struct Submodule13 {
+    layernormalization52: LayerNorm,
+    linear88: Linear,
+    linear89: Linear,
+    layernormalization53: LayerNorm,
+    linear90: Linear,
+    constant257: burn::module::Param<Tensor<1>>,
+    constant255: burn::module::Param<Tensor<1>>,
+    constant256: burn::module::Param<Tensor<1>>,
+    linear91: Linear,
+    layernormalization54: LayerNorm,
+    linear92: Linear,
+    linear93: Linear,
+    layernormalization55: LayerNorm,
+    linear94: Linear,
+    constant267: burn::module::Param<Tensor<1>>,
+    constant265: burn::module::Param<Tensor<1>>,
+    constant266: burn::module::Param<Tensor<1>>,
+    linear95: Linear,
+    layernormalization56: LayerNorm,
+    linear96: Linear,
+    linear97: Linear,
+    layernormalization57: LayerNorm,
+    linear98: Linear,
     #[module(skip)]
-    device: B::Device,
+    device: Device,
 }
-impl<B: Backend> Submodule13<B> {
+impl Submodule13 {
     #[allow(unused_variables)]
-    pub fn new(device: &B::Device) -> Self {
+    pub fn new(device: &Device) -> Self {
         let layernormalization52 = LayerNormConfig::new(1024)
             .with_epsilon(0.000009999999747378752f64)
             .with_bias(true)
@@ -3420,28 +3395,28 @@ impl<B: Backend> Submodule13<B> {
             .with_bias(true)
             .init(device);
         let linear90 = LinearConfig::new(1024, 3072).with_bias(false).init(device);
-        let constant257: burn::module::Param<Tensor<B, 1>> = burn::module::Param::uninitialized(
+        let constant257: burn::module::Param<Tensor<1>> = burn::module::Param::uninitialized(
             burn::module::ParamId::new(),
             move |device, _require_grad| {
-                Tensor::<B, 1>::zeros([1024], (device, burn::tensor::DType::F32))
+                Tensor::<1>::zeros([1024], (device, burn::tensor::DType::F32))
             },
             device.clone(),
             false,
             [1024].into(),
         );
-        let constant255: burn::module::Param<Tensor<B, 1>> = burn::module::Param::uninitialized(
+        let constant255: burn::module::Param<Tensor<1>> = burn::module::Param::uninitialized(
             burn::module::ParamId::new(),
             move |device, _require_grad| {
-                Tensor::<B, 1>::zeros([1024], (device, burn::tensor::DType::F32))
+                Tensor::<1>::zeros([1024], (device, burn::tensor::DType::F32))
             },
             device.clone(),
             false,
             [1024].into(),
         );
-        let constant256: burn::module::Param<Tensor<B, 1>> = burn::module::Param::uninitialized(
+        let constant256: burn::module::Param<Tensor<1>> = burn::module::Param::uninitialized(
             burn::module::ParamId::new(),
             move |device, _require_grad| {
-                Tensor::<B, 1>::zeros([1024], (device, burn::tensor::DType::F32))
+                Tensor::<1>::zeros([1024], (device, burn::tensor::DType::F32))
             },
             device.clone(),
             false,
@@ -3459,28 +3434,28 @@ impl<B: Backend> Submodule13<B> {
             .with_bias(true)
             .init(device);
         let linear94 = LinearConfig::new(1024, 3072).with_bias(false).init(device);
-        let constant267: burn::module::Param<Tensor<B, 1>> = burn::module::Param::uninitialized(
+        let constant267: burn::module::Param<Tensor<1>> = burn::module::Param::uninitialized(
             burn::module::ParamId::new(),
             move |device, _require_grad| {
-                Tensor::<B, 1>::zeros([1024], (device, burn::tensor::DType::F32))
+                Tensor::<1>::zeros([1024], (device, burn::tensor::DType::F32))
             },
             device.clone(),
             false,
             [1024].into(),
         );
-        let constant265: burn::module::Param<Tensor<B, 1>> = burn::module::Param::uninitialized(
+        let constant265: burn::module::Param<Tensor<1>> = burn::module::Param::uninitialized(
             burn::module::ParamId::new(),
             move |device, _require_grad| {
-                Tensor::<B, 1>::zeros([1024], (device, burn::tensor::DType::F32))
+                Tensor::<1>::zeros([1024], (device, burn::tensor::DType::F32))
             },
             device.clone(),
             false,
             [1024].into(),
         );
-        let constant266: burn::module::Param<Tensor<B, 1>> = burn::module::Param::uninitialized(
+        let constant266: burn::module::Param<Tensor<1>> = burn::module::Param::uninitialized(
             burn::module::ParamId::new(),
             move |device, _require_grad| {
-                Tensor::<B, 1>::zeros([1024], (device, burn::tensor::DType::F32))
+                Tensor::<1>::zeros([1024], (device, burn::tensor::DType::F32))
             },
             device.clone(),
             false,
@@ -3522,22 +3497,21 @@ impl<B: Backend> Submodule13<B> {
             linear97,
             layernormalization57,
             linear98,
-            phantom: core::marker::PhantomData,
             device: device.clone(),
         }
     }
     #[allow(clippy::let_and_return, clippy::approx_constant)]
     pub fn forward(
         &self,
-        add135_out1: Tensor<B, 3>,
+        add135_out1: Tensor<3>,
         concat6_out1: [i64; 4],
         constant280_out1: [i64; 1],
         constant361_out1: [i64; 1],
-        constant282_out1: Tensor<B, 1>,
-        where1_out1: Tensor<B, 4>,
+        constant282_out1: Tensor<1>,
+        where1_out1: Tensor<4>,
         constant364_out1: f32,
         concat8_out1: [i64; 3],
-    ) -> Tensor<B, 3> {
+    ) -> Tensor<3> {
         let layernormalization52_out1 = {
             let dtype = add135_out1.clone().dtype();
             self.layernormalization52
@@ -3690,63 +3664,62 @@ impl<B: Backend> Submodule13<B> {
 }
 
 #[derive(Module, Debug)]
-pub struct Model<B: Backend> {
-    submodule1: Submodule1<B>,
-    submodule2: Submodule2<B>,
-    submodule3: Submodule3<B>,
-    submodule4: Submodule4<B>,
-    submodule5: Submodule5<B>,
-    submodule6: Submodule6<B>,
-    submodule7: Submodule7<B>,
-    submodule8: Submodule8<B>,
-    submodule9: Submodule9<B>,
-    submodule10: Submodule10<B>,
-    submodule11: Submodule11<B>,
-    submodule12: Submodule12<B>,
-    submodule13: Submodule13<B>,
-    phantom: core::marker::PhantomData<B>,
+pub struct Model {
+    submodule1: Submodule1,
+    submodule2: Submodule2,
+    submodule3: Submodule3,
+    submodule4: Submodule4,
+    submodule5: Submodule5,
+    submodule6: Submodule6,
+    submodule7: Submodule7,
+    submodule8: Submodule8,
+    submodule9: Submodule9,
+    submodule10: Submodule10,
+    submodule11: Submodule11,
+    submodule12: Submodule12,
+    submodule13: Submodule13,
     #[module(skip)]
-    device: B::Device,
+    device: Device,
 }
 
 extern crate std;
 
-impl<B: Backend> Default for Model<B> {
+impl Default for Model {
     fn default() -> Self {
-        Self::from_file(
-            "/disks/wizard/dev/Python/Projekty/AI/Sepple/target/release/build/multipa-model-d12b9d020bfa389c/out/model/multipa_sim.bpk",
-            &Default::default(),
-        )
+        Self::from_file("out/multipa_sim.bpk", &Default::default())
     }
 }
 
-impl<B: Backend> Model<B> {
+impl Model {
     /// Load model weights from a burnpack file.
-    pub fn from_file<P: AsRef<std::path::Path>>(file: P, device: &B::Device) -> Self {
+    pub fn from_file<P: AsRef<std::path::Path>>(file: P, device: &Device) -> Self {
         let mut model = Self::new(device);
-        let mut store = BurnpackStore::from_file(file);
-        model
-            .load_from(&mut store)
-            .expect("Failed to load burnpack file");
+        let mut store = BurnpackStore::from_file(&file);
+        model.load_from(&mut store).unwrap_or_else(|e| {
+            panic!(
+                "Failed to load burnpack file {}: {e}",
+                file.as_ref().display()
+            )
+        });
         model
     }
 
     /// Load model weights from in-memory bytes.
     ///
     /// The bytes must be the contents of a `.bpk` file.
-    pub fn from_bytes(bytes: Bytes, device: &B::Device) -> Self {
+    pub fn from_bytes(bytes: Bytes, device: &Device) -> Self {
         let mut model = Self::new(device);
         let mut store = BurnpackStore::from_bytes(Some(bytes));
         model
             .load_from(&mut store)
-            .expect("Failed to load burnpack bytes");
+            .unwrap_or_else(|e| panic!("Failed to load burnpack bytes: {e}"));
         model
     }
 }
 
-impl<B: Backend> Model<B> {
+impl Model {
     #[allow(unused_variables)]
-    pub fn new(device: &B::Device) -> Self {
+    pub fn new(device: &Device) -> Self {
         let submodule1 = Submodule1::new(device);
         let submodule2 = Submodule2::new(device);
         let submodule3 = Submodule3::new(device);
@@ -3774,13 +3747,12 @@ impl<B: Backend> Model<B> {
             submodule11,
             submodule12,
             submodule13,
-            phantom: core::marker::PhantomData,
             device: device.clone(),
         }
     }
 
     #[allow(clippy::let_and_return, clippy::approx_constant)]
-    pub fn forward(&self, input_values: Tensor<B, 2>) -> Tensor<B, 3> {
+    pub fn forward(&self, input_values: Tensor<2>) -> Tensor<3> {
         let (add4_out1, shape1_out1, add3_out1, expand1_out1, constant360_out1) =
             self.submodule1.forward(input_values);
         let (

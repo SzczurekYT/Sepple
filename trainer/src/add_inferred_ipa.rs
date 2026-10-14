@@ -1,7 +1,7 @@
 use std::{io, path::Path, process::Command, time::Instant};
 
 use hound::{SampleFormat, WavSpec};
-use sepple::{SeppleBackend, ipa_recognizer::IpaRecognizer};
+use sepple::ipa_recognizer::IpaRecognizer;
 
 const BATCH_SIZE: usize = 10;
 
@@ -16,7 +16,7 @@ pub fn add_inferred_ipa(
     println!("Loading model");
     let load_start = Instant::now();
 
-    let recognizer = IpaRecognizer::<SeppleBackend>::init_default(model_path).unwrap();
+    let recognizer = IpaRecognizer::init_default(model_path).unwrap();
     println!("Load done (took: {:.2?})", load_start.elapsed());
 
     let mut generated = 0u64;
@@ -51,11 +51,7 @@ pub fn add_inferred_ipa(
     Ok(())
 }
 
-fn generate_row(
-    row: &mut Row,
-    audio_dir: &str,
-    recognizer: &IpaRecognizer<SeppleBackend>,
-) -> io::Result<()> {
+fn generate_row(row: &mut Row, audio_dir: &str, recognizer: &IpaRecognizer) -> io::Result<()> {
     let path = Path::new(audio_dir).join(&row.file);
     let samples = read_audio_to_f32(&path)?;
     let inferred = recognizer.recognize(&samples);

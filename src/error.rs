@@ -1,6 +1,6 @@
 use std::io;
 
-use burn_store::BurnpackError;
+use burn_store::burn_pack::Error as BurnpackError;
 use thiserror::Error;
 
 use crate::model_provider::ModelSetupError;
