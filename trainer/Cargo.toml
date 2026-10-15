@@ -18,3 +18,7 @@ indicatif.workspace = true
 sepple = { path = "../" }
 phonetics-rs.workspace = true
 hound = "3.5.1"
+
+
+[package.metadata.cargo-machete.renamed]
+phonetics-rs = "phonetics"
