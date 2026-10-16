@@ -1,4 +1,5 @@
 #![allow(clippy::all)]
+#![allow(unused_variables)]
 // Generated from ONNX "../model/zipa-small-crctc-ns.onnx" by burn-onnx
 extern crate alloc;
 use burn::prelude::*;
@@ -990,7 +991,15 @@ impl Submodule2 {
                     shape[dim_offset] = input_dims[i] as i64;
                 }
             }
-            unsqueeze5_out1.expand(shape)
+            if shape.contains(&0) {
+                // ONNX broadcasts a size-1 dim down to 0; burn's expand rejects that.
+                Tensor::empty(
+                    shape.map(|dim| dim as usize),
+                    (&self.device, unsqueeze5_out1.dtype()),
+                )
+            } else {
+                unsqueeze5_out1.expand(shape)
+            }
         };
         let unsqueeze8_out1: Tensor<2, Int> = div1_out1
             .clone()
@@ -1106,7 +1115,15 @@ impl Submodule2 {
                         shape[dim_offset] = input_dims[i] as i64;
                     }
                 }
-                cos7_out1.expand(shape)
+                if shape.contains(&0) {
+                    // ONNX broadcasts a size-1 dim down to 0; burn's expand rejects that.
+                    Tensor::empty(
+                        shape.map(|dim| dim as usize),
+                        (&self.device, cos7_out1.dtype()),
+                    )
+                } else {
+                    cos7_out1.expand(shape)
+                }
             };
             let shape137_out1: [i64; 2] = {
                 let axes = &constantofshape45_out1.clone().dims()[0..2];
@@ -1208,7 +1225,15 @@ impl Submodule2 {
                         shape[dim_offset] = input_dims[i] as i64;
                     }
                 }
-                reshape40_out1.expand(shape)
+                if shape.contains(&0) {
+                    // ONNX broadcasts a size-1 dim down to 0; burn's expand rejects that.
+                    Tensor::empty(
+                        shape.map(|dim| dim as usize),
+                        (&self.device, reshape40_out1.dtype()),
+                    )
+                } else {
+                    reshape40_out1.expand(shape)
+                }
             };
             let unsqueeze221_out1: Tensor<3, Int> = expand58_out1
                 .unsqueeze_dims::<3>(&[-1]);
@@ -1254,7 +1279,15 @@ impl Submodule2 {
                         shape[dim_offset] = input_dims[i] as i64;
                     }
                 }
-                slice84_out1.expand(shape)
+                if shape.contains(&0) {
+                    // ONNX broadcasts a size-1 dim down to 0; burn's expand rejects that.
+                    Tensor::empty(
+                        shape.map(|dim| dim as usize),
+                        (&self.device, slice84_out1.dtype()),
+                    )
+                } else {
+                    slice84_out1.expand(shape)
+                }
             };
             let unsqueeze222_out1: Tensor<3, Int> = expand59_out1
                 .unsqueeze_dims::<3>(&[-1]);
@@ -1328,7 +1361,15 @@ impl Submodule2 {
                         shape[dim_offset] = input_dims[i] as i64;
                     }
                 }
-                sin7_out1.expand(shape)
+                if shape.contains(&0) {
+                    // ONNX broadcasts a size-1 dim down to 0; burn's expand rejects that.
+                    Tensor::empty(
+                        shape.map(|dim| dim as usize),
+                        (&self.device, sin7_out1.dtype()),
+                    )
+                } else {
+                    sin7_out1.expand(shape)
+                }
             };
             let shape144_out1: [i64; 2] = {
                 let axes = &scatternd19_out1.clone().dims()[0..2];
@@ -1430,7 +1471,15 @@ impl Submodule2 {
                         shape[dim_offset] = input_dims[i] as i64;
                     }
                 }
-                reshape42_out1.expand(shape)
+                if shape.contains(&0) {
+                    // ONNX broadcasts a size-1 dim down to 0; burn's expand rejects that.
+                    Tensor::empty(
+                        shape.map(|dim| dim as usize),
+                        (&self.device, reshape42_out1.dtype()),
+                    )
+                } else {
+                    reshape42_out1.expand(shape)
+                }
             };
             let unsqueeze233_out1: Tensor<3, Int> = expand61_out1
                 .unsqueeze_dims::<3>(&[-1]);
@@ -1476,7 +1525,15 @@ impl Submodule2 {
                         shape[dim_offset] = input_dims[i] as i64;
                     }
                 }
-                slice89_out1.expand(shape)
+                if shape.contains(&0) {
+                    // ONNX broadcasts a size-1 dim down to 0; burn's expand rejects that.
+                    Tensor::empty(
+                        shape.map(|dim| dim as usize),
+                        (&self.device, slice89_out1.dtype()),
+                    )
+                } else {
+                    slice89_out1.expand(shape)
+                }
             };
             let unsqueeze234_out1: Tensor<3, Int> = expand62_out1
                 .unsqueeze_dims::<3>(&[-1]);
@@ -1545,7 +1602,15 @@ impl Submodule2 {
             };
             let expand63_out1 = {
                 let shape: [i64; 1] = shape150_out1;
-                constant1452_out1.expand(shape)
+                if shape.contains(&0) {
+                    // ONNX broadcasts a size-1 dim down to 0; burn's expand rejects that.
+                    Tensor::empty(
+                        shape.map(|dim| dim as usize),
+                        (&self.device, constant1452_out1.dtype()),
+                    )
+                } else {
+                    constant1452_out1.expand(shape)
+                }
             };
             let shape151_out1: [i64; 2] = {
                 let axes = &scatternd20_out1.clone().dims()[0..2];
@@ -1626,7 +1691,15 @@ impl Submodule2 {
                         shape[dim_offset] = input_dims[i] as i64;
                     }
                 }
-                reshape44_out1.expand(shape)
+                if shape.contains(&0) {
+                    // ONNX broadcasts a size-1 dim down to 0; burn's expand rejects that.
+                    Tensor::empty(
+                        shape.map(|dim| dim as usize),
+                        (&self.device, reshape44_out1.dtype()),
+                    )
+                } else {
+                    reshape44_out1.expand(shape)
+                }
             };
             let unsqueeze239_out1: Tensor<3, Int> = expand64_out1
                 .unsqueeze_dims::<3>(&[-1]);
@@ -1672,7 +1745,15 @@ impl Submodule2 {
                         shape[dim_offset] = input_dims[i] as i64;
                     }
                 }
-                constant1461_out1.expand(shape)
+                if shape.contains(&0) {
+                    // ONNX broadcasts a size-1 dim down to 0; burn's expand rejects that.
+                    Tensor::empty(
+                        shape.map(|dim| dim as usize),
+                        (&self.device, constant1461_out1.dtype()),
+                    )
+                } else {
+                    constant1461_out1.expand(shape)
+                }
             };
             let unsqueeze240_out1: Tensor<3, Int> = expand65_out1
                 .unsqueeze_dims::<3>(&[-1]);
@@ -1915,7 +1996,15 @@ impl Submodule3 {
                     shape[dim_offset] = input_dims[i] as i64;
                 }
             }
-            range2_out1.expand(shape)
+            if shape.contains(&0) {
+                // ONNX broadcasts a size-1 dim down to 0; burn's expand rejects that.
+                Tensor::empty(
+                    shape.map(|dim| dim as usize),
+                    (&self.device, range2_out1.dtype()),
+                )
+            } else {
+                range2_out1.expand(shape)
+            }
         };
         let tile1_out1 = {
             let repeats: alloc::vec::Vec<usize> = unsqueeze20_out1
@@ -2704,7 +2793,15 @@ impl Submodule4 {
                     shape[dim_offset] = input_dims[i] as i64;
                 }
             }
-            unsqueeze27_out1.clone().expand(shape)
+            if shape.contains(&0) {
+                // ONNX broadcasts a size-1 dim down to 0; burn's expand rejects that.
+                Tensor::empty(
+                    shape.map(|dim| dim as usize),
+                    (&self.device, unsqueeze27_out1.clone().dtype()),
+                )
+            } else {
+                unsqueeze27_out1.clone().expand(shape)
+            }
         };
         let constant892_out1 = 0f32;
         let where4_out1 = transpose11_out1.mask_fill(expand3_out1, constant892_out1);
@@ -2887,7 +2984,15 @@ impl Submodule4 {
                     shape[dim_offset] = input_dims[i] as i64;
                 }
             }
-            unsqueeze27_out1.clone().expand(shape)
+            if shape.contains(&0) {
+                // ONNX broadcasts a size-1 dim down to 0; burn's expand rejects that.
+                Tensor::empty(
+                    shape.map(|dim| dim as usize),
+                    (&self.device, unsqueeze27_out1.clone().dtype()),
+                )
+            } else {
+                unsqueeze27_out1.clone().expand(shape)
+            }
         };
         let constant919_out1 = 0f32;
         let where7_out1 = transpose15_out1.mask_fill(expand4_out1, constant919_out1);
@@ -3131,7 +3236,15 @@ impl Submodule5 {
                     shape[dim_offset] = input_dims[i] as i64;
                 }
             }
-            range4_out1.expand(shape)
+            if shape.contains(&0) {
+                // ONNX broadcasts a size-1 dim down to 0; burn's expand rejects that.
+                Tensor::empty(
+                    shape.map(|dim| dim as usize),
+                    (&self.device, range4_out1.dtype()),
+                )
+            } else {
+                range4_out1.expand(shape)
+            }
         };
         let tile2_out1 = {
             let repeats: alloc::vec::Vec<usize> = unsqueeze56_out1
@@ -3918,7 +4031,15 @@ impl Submodule6 {
                     shape[dim_offset] = input_dims[i] as i64;
                 }
             }
-            unsqueeze27_out1.clone().expand(shape)
+            if shape.contains(&0) {
+                // ONNX broadcasts a size-1 dim down to 0; burn's expand rejects that.
+                Tensor::empty(
+                    shape.map(|dim| dim as usize),
+                    (&self.device, unsqueeze27_out1.clone().dtype()),
+                )
+            } else {
+                unsqueeze27_out1.clone().expand(shape)
+            }
         };
         let constant1032_out1 = 0f32;
         let where12_out1 = transpose25_out1.mask_fill(expand6_out1, constant1032_out1);
@@ -4101,7 +4222,15 @@ impl Submodule6 {
                     shape[dim_offset] = input_dims[i] as i64;
                 }
             }
-            unsqueeze27_out1.expand(shape)
+            if shape.contains(&0) {
+                // ONNX broadcasts a size-1 dim down to 0; burn's expand rejects that.
+                Tensor::empty(
+                    shape.map(|dim| dim as usize),
+                    (&self.device, unsqueeze27_out1.dtype()),
+                )
+            } else {
+                unsqueeze27_out1.expand(shape)
+            }
         };
         let constant1059_out1 = 0f32;
         let where15_out1 = transpose29_out1.mask_fill(expand7_out1, constant1059_out1);
@@ -4540,7 +4669,15 @@ impl Submodule7 {
                     shape[dim_offset] = input_dims[i] as i64;
                 }
             }
-            slice27_out1.expand(shape)
+            if shape.contains(&0) {
+                // ONNX broadcasts a size-1 dim down to 0; burn's expand rejects that.
+                Tensor::empty(
+                    shape.map(|dim| dim as usize),
+                    (&self.device, slice27_out1.dtype()),
+                )
+            } else {
+                slice27_out1.expand(shape)
+            }
         };
         let concat36_out1 = burn::tensor::Tensor::cat(
             [concat34_out1.clone(), expand8_out1].into(),
@@ -4675,7 +4812,15 @@ impl Submodule7 {
                         shape[dim_offset] = input_dims[i] as i64;
                     }
                 }
-                cos7_out1.expand(shape)
+                if shape.contains(&0) {
+                    // ONNX broadcasts a size-1 dim down to 0; burn's expand rejects that.
+                    Tensor::empty(
+                        shape.map(|dim| dim as usize),
+                        (&self.device, cos7_out1.dtype()),
+                    )
+                } else {
+                    cos7_out1.expand(shape)
+                }
             };
             let shape195_out1: [i64; 2] = {
                 let axes = &constantofshape49_out1.clone().dims()[0..2];
@@ -4777,7 +4922,15 @@ impl Submodule7 {
                         shape[dim_offset] = input_dims[i] as i64;
                     }
                 }
-                reshape68_out1.expand(shape)
+                if shape.contains(&0) {
+                    // ONNX broadcasts a size-1 dim down to 0; burn's expand rejects that.
+                    Tensor::empty(
+                        shape.map(|dim| dim as usize),
+                        (&self.device, reshape68_out1.dtype()),
+                    )
+                } else {
+                    reshape68_out1.expand(shape)
+                }
             };
             let unsqueeze305_out1: Tensor<3, Int> = expand65_out1
                 .unsqueeze_dims::<3>(&[-1]);
@@ -4823,7 +4976,15 @@ impl Submodule7 {
                         shape[dim_offset] = input_dims[i] as i64;
                     }
                 }
-                slice110_out1.expand(shape)
+                if shape.contains(&0) {
+                    // ONNX broadcasts a size-1 dim down to 0; burn's expand rejects that.
+                    Tensor::empty(
+                        shape.map(|dim| dim as usize),
+                        (&self.device, slice110_out1.dtype()),
+                    )
+                } else {
+                    slice110_out1.expand(shape)
+                }
             };
             let unsqueeze306_out1: Tensor<3, Int> = expand66_out1
                 .unsqueeze_dims::<3>(&[-1]);
@@ -4897,7 +5058,15 @@ impl Submodule7 {
                         shape[dim_offset] = input_dims[i] as i64;
                     }
                 }
-                sin7_out1.expand(shape)
+                if shape.contains(&0) {
+                    // ONNX broadcasts a size-1 dim down to 0; burn's expand rejects that.
+                    Tensor::empty(
+                        shape.map(|dim| dim as usize),
+                        (&self.device, sin7_out1.dtype()),
+                    )
+                } else {
+                    sin7_out1.expand(shape)
+                }
             };
             let shape202_out1: [i64; 2] = {
                 let axes = &scatternd19_out1.clone().dims()[0..2];
@@ -4999,7 +5168,15 @@ impl Submodule7 {
                         shape[dim_offset] = input_dims[i] as i64;
                     }
                 }
-                reshape70_out1.expand(shape)
+                if shape.contains(&0) {
+                    // ONNX broadcasts a size-1 dim down to 0; burn's expand rejects that.
+                    Tensor::empty(
+                        shape.map(|dim| dim as usize),
+                        (&self.device, reshape70_out1.dtype()),
+                    )
+                } else {
+                    reshape70_out1.expand(shape)
+                }
             };
             let unsqueeze317_out1: Tensor<3, Int> = expand68_out1
                 .unsqueeze_dims::<3>(&[-1]);
@@ -5045,7 +5222,15 @@ impl Submodule7 {
                         shape[dim_offset] = input_dims[i] as i64;
                     }
                 }
-                slice115_out1.expand(shape)
+                if shape.contains(&0) {
+                    // ONNX broadcasts a size-1 dim down to 0; burn's expand rejects that.
+                    Tensor::empty(
+                        shape.map(|dim| dim as usize),
+                        (&self.device, slice115_out1.dtype()),
+                    )
+                } else {
+                    slice115_out1.expand(shape)
+                }
             };
             let unsqueeze318_out1: Tensor<3, Int> = expand69_out1
                 .unsqueeze_dims::<3>(&[-1]);
@@ -5114,7 +5299,15 @@ impl Submodule7 {
             };
             let expand70_out1 = {
                 let shape: [i64; 1] = shape208_out1;
-                constant1783_out1.expand(shape)
+                if shape.contains(&0) {
+                    // ONNX broadcasts a size-1 dim down to 0; burn's expand rejects that.
+                    Tensor::empty(
+                        shape.map(|dim| dim as usize),
+                        (&self.device, constant1783_out1.dtype()),
+                    )
+                } else {
+                    constant1783_out1.expand(shape)
+                }
             };
             let shape209_out1: [i64; 2] = {
                 let axes = &scatternd20_out1.clone().dims()[0..2];
@@ -5195,7 +5388,15 @@ impl Submodule7 {
                         shape[dim_offset] = input_dims[i] as i64;
                     }
                 }
-                reshape72_out1.expand(shape)
+                if shape.contains(&0) {
+                    // ONNX broadcasts a size-1 dim down to 0; burn's expand rejects that.
+                    Tensor::empty(
+                        shape.map(|dim| dim as usize),
+                        (&self.device, reshape72_out1.dtype()),
+                    )
+                } else {
+                    reshape72_out1.expand(shape)
+                }
             };
             let unsqueeze323_out1: Tensor<3, Int> = expand71_out1
                 .unsqueeze_dims::<3>(&[-1]);
@@ -5241,7 +5442,15 @@ impl Submodule7 {
                         shape[dim_offset] = input_dims[i] as i64;
                     }
                 }
-                constant1792_out1.expand(shape)
+                if shape.contains(&0) {
+                    // ONNX broadcasts a size-1 dim down to 0; burn's expand rejects that.
+                    Tensor::empty(
+                        shape.map(|dim| dim as usize),
+                        (&self.device, constant1792_out1.dtype()),
+                    )
+                } else {
+                    constant1792_out1.expand(shape)
+                }
             };
             let unsqueeze324_out1: Tensor<3, Int> = expand72_out1
                 .unsqueeze_dims::<3>(&[-1]);
@@ -5484,7 +5693,15 @@ impl Submodule8 {
                     shape[dim_offset] = input_dims[i] as i64;
                 }
             }
-            range6_out1.expand(shape)
+            if shape.contains(&0) {
+                // ONNX broadcasts a size-1 dim down to 0; burn's expand rejects that.
+                Tensor::empty(
+                    shape.map(|dim| dim as usize),
+                    (&self.device, range6_out1.dtype()),
+                )
+            } else {
+                range6_out1.expand(shape)
+            }
         };
         let tile3_out1 = {
             let repeats: alloc::vec::Vec<usize> = unsqueeze104_out1
@@ -6275,7 +6492,15 @@ impl Submodule9 {
                     shape[dim_offset] = input_dims[i] as i64;
                 }
             }
-            unsqueeze111_out1.clone().expand(shape)
+            if shape.contains(&0) {
+                // ONNX broadcasts a size-1 dim down to 0; burn's expand rejects that.
+                Tensor::empty(
+                    shape.map(|dim| dim as usize),
+                    (&self.device, unsqueeze111_out1.clone().dtype()),
+                )
+            } else {
+                unsqueeze111_out1.clone().expand(shape)
+            }
         };
         let constant1223_out1 = 0f32;
         let where21_out1 = transpose39_out1.mask_fill(expand10_out1, constant1223_out1);
@@ -6458,7 +6683,15 @@ impl Submodule9 {
                     shape[dim_offset] = input_dims[i] as i64;
                 }
             }
-            unsqueeze111_out1.clone().expand(shape)
+            if shape.contains(&0) {
+                // ONNX broadcasts a size-1 dim down to 0; burn's expand rejects that.
+                Tensor::empty(
+                    shape.map(|dim| dim as usize),
+                    (&self.device, unsqueeze111_out1.clone().dtype()),
+                )
+            } else {
+                unsqueeze111_out1.clone().expand(shape)
+            }
         };
         let constant1250_out1 = 0f32;
         let where24_out1 = transpose43_out1.mask_fill(expand11_out1, constant1250_out1);
@@ -6702,7 +6935,15 @@ impl Submodule10 {
                     shape[dim_offset] = input_dims[i] as i64;
                 }
             }
-            range8_out1.expand(shape)
+            if shape.contains(&0) {
+                // ONNX broadcasts a size-1 dim down to 0; burn's expand rejects that.
+                Tensor::empty(
+                    shape.map(|dim| dim as usize),
+                    (&self.device, range8_out1.dtype()),
+                )
+            } else {
+                range8_out1.expand(shape)
+            }
         };
         let tile4_out1 = {
             let repeats: alloc::vec::Vec<usize> = unsqueeze140_out1
@@ -7492,7 +7733,15 @@ impl Submodule11 {
                     shape[dim_offset] = input_dims[i] as i64;
                 }
             }
-            unsqueeze111_out1.clone().expand(shape)
+            if shape.contains(&0) {
+                // ONNX broadcasts a size-1 dim down to 0; burn's expand rejects that.
+                Tensor::empty(
+                    shape.map(|dim| dim as usize),
+                    (&self.device, unsqueeze111_out1.clone().dtype()),
+                )
+            } else {
+                unsqueeze111_out1.clone().expand(shape)
+            }
         };
         let constant1363_out1 = 0f32;
         let where29_out1 = transpose53_out1.mask_fill(expand13_out1, constant1363_out1);
@@ -7676,7 +7925,15 @@ impl Submodule11 {
                     shape[dim_offset] = input_dims[i] as i64;
                 }
             }
-            unsqueeze111_out1.expand(shape)
+            if shape.contains(&0) {
+                // ONNX broadcasts a size-1 dim down to 0; burn's expand rejects that.
+                Tensor::empty(
+                    shape.map(|dim| dim as usize),
+                    (&self.device, unsqueeze111_out1.dtype()),
+                )
+            } else {
+                unsqueeze111_out1.expand(shape)
+            }
         };
         let constant1390_out1 = 0f32;
         let where32_out1 = transpose57_out1.mask_fill(expand14_out1, constant1390_out1);
@@ -7877,7 +8134,15 @@ impl Submodule12 {
                     shape[dim_offset] = input_dims[i] as i64;
                 }
             }
-            unsqueeze167_out1.expand(shape)
+            if shape.contains(&0) {
+                // ONNX broadcasts a size-1 dim down to 0; burn's expand rejects that.
+                Tensor::empty(
+                    shape.map(|dim| dim as usize),
+                    (&self.device, unsqueeze167_out1.dtype()),
+                )
+            } else {
+                unsqueeze167_out1.expand(shape)
+            }
         };
         let constant1413_out1 = 2i64;
         let mul111_out1 = gather102_out1 * constant1413_out1;
@@ -8017,7 +8282,15 @@ impl Submodule12 {
                     shape[dim_offset] = input_dims[i] as i64;
                 }
             }
-            slice54_out1.expand(shape)
+            if shape.contains(&0) {
+                // ONNX broadcasts a size-1 dim down to 0; burn's expand rejects that.
+                Tensor::empty(
+                    shape.map(|dim| dim as usize),
+                    (&self.device, slice54_out1.dtype()),
+                )
+            } else {
+                slice54_out1.expand(shape)
+            }
         };
         let concat73_out1 = burn::tensor::Tensor::cat(
             [concat71_out1.clone(), expand16_out1].into(),
@@ -8395,7 +8668,15 @@ impl Submodule13 {
                         shape[dim_offset] = input_dims[i] as i64;
                     }
                 }
-                cos7_out1.expand(shape)
+                if shape.contains(&0) {
+                    // ONNX broadcasts a size-1 dim down to 0; burn's expand rejects that.
+                    Tensor::empty(
+                        shape.map(|dim| dim as usize),
+                        (&self.device, cos7_out1.dtype()),
+                    )
+                } else {
+                    cos7_out1.expand(shape)
+                }
             };
             let shape257_out1: [i64; 2] = {
                 let axes = &constantofshape54_out1.clone().dims()[0..2];
@@ -8497,7 +8778,15 @@ impl Submodule13 {
                         shape[dim_offset] = input_dims[i] as i64;
                     }
                 }
-                reshape98_out1.expand(shape)
+                if shape.contains(&0) {
+                    // ONNX broadcasts a size-1 dim down to 0; burn's expand rejects that.
+                    Tensor::empty(
+                        shape.map(|dim| dim as usize),
+                        (&self.device, reshape98_out1.dtype()),
+                    )
+                } else {
+                    reshape98_out1.expand(shape)
+                }
             };
             let unsqueeze397_out1: Tensor<3, Int> = expand73_out1
                 .unsqueeze_dims::<3>(&[-1]);
@@ -8543,7 +8832,15 @@ impl Submodule13 {
                         shape[dim_offset] = input_dims[i] as i64;
                     }
                 }
-                slice137_out1.expand(shape)
+                if shape.contains(&0) {
+                    // ONNX broadcasts a size-1 dim down to 0; burn's expand rejects that.
+                    Tensor::empty(
+                        shape.map(|dim| dim as usize),
+                        (&self.device, slice137_out1.dtype()),
+                    )
+                } else {
+                    slice137_out1.expand(shape)
+                }
             };
             let unsqueeze398_out1: Tensor<3, Int> = expand74_out1
                 .unsqueeze_dims::<3>(&[-1]);
@@ -8617,7 +8914,15 @@ impl Submodule13 {
                         shape[dim_offset] = input_dims[i] as i64;
                     }
                 }
-                sin7_out1.expand(shape)
+                if shape.contains(&0) {
+                    // ONNX broadcasts a size-1 dim down to 0; burn's expand rejects that.
+                    Tensor::empty(
+                        shape.map(|dim| dim as usize),
+                        (&self.device, sin7_out1.dtype()),
+                    )
+                } else {
+                    sin7_out1.expand(shape)
+                }
             };
             let shape264_out1: [i64; 2] = {
                 let axes = &scatternd19_out1.clone().dims()[0..2];
@@ -8719,7 +9024,15 @@ impl Submodule13 {
                         shape[dim_offset] = input_dims[i] as i64;
                     }
                 }
-                reshape100_out1.expand(shape)
+                if shape.contains(&0) {
+                    // ONNX broadcasts a size-1 dim down to 0; burn's expand rejects that.
+                    Tensor::empty(
+                        shape.map(|dim| dim as usize),
+                        (&self.device, reshape100_out1.dtype()),
+                    )
+                } else {
+                    reshape100_out1.expand(shape)
+                }
             };
             let unsqueeze409_out1: Tensor<3, Int> = expand76_out1
                 .unsqueeze_dims::<3>(&[-1]);
@@ -8765,7 +9078,15 @@ impl Submodule13 {
                         shape[dim_offset] = input_dims[i] as i64;
                     }
                 }
-                slice142_out1.expand(shape)
+                if shape.contains(&0) {
+                    // ONNX broadcasts a size-1 dim down to 0; burn's expand rejects that.
+                    Tensor::empty(
+                        shape.map(|dim| dim as usize),
+                        (&self.device, slice142_out1.dtype()),
+                    )
+                } else {
+                    slice142_out1.expand(shape)
+                }
             };
             let unsqueeze410_out1: Tensor<3, Int> = expand77_out1
                 .unsqueeze_dims::<3>(&[-1]);
@@ -8834,7 +9155,15 @@ impl Submodule13 {
             };
             let expand78_out1 = {
                 let shape: [i64; 1] = shape270_out1;
-                constant2132_out1.expand(shape)
+                if shape.contains(&0) {
+                    // ONNX broadcasts a size-1 dim down to 0; burn's expand rejects that.
+                    Tensor::empty(
+                        shape.map(|dim| dim as usize),
+                        (&self.device, constant2132_out1.dtype()),
+                    )
+                } else {
+                    constant2132_out1.expand(shape)
+                }
             };
             let shape271_out1: [i64; 2] = {
                 let axes = &scatternd20_out1.clone().dims()[0..2];
@@ -8915,7 +9244,15 @@ impl Submodule13 {
                         shape[dim_offset] = input_dims[i] as i64;
                     }
                 }
-                reshape102_out1.expand(shape)
+                if shape.contains(&0) {
+                    // ONNX broadcasts a size-1 dim down to 0; burn's expand rejects that.
+                    Tensor::empty(
+                        shape.map(|dim| dim as usize),
+                        (&self.device, reshape102_out1.dtype()),
+                    )
+                } else {
+                    reshape102_out1.expand(shape)
+                }
             };
             let unsqueeze415_out1: Tensor<3, Int> = expand79_out1
                 .unsqueeze_dims::<3>(&[-1]);
@@ -8961,7 +9298,15 @@ impl Submodule13 {
                         shape[dim_offset] = input_dims[i] as i64;
                     }
                 }
-                constant2141_out1.expand(shape)
+                if shape.contains(&0) {
+                    // ONNX broadcasts a size-1 dim down to 0; burn's expand rejects that.
+                    Tensor::empty(
+                        shape.map(|dim| dim as usize),
+                        (&self.device, constant2141_out1.dtype()),
+                    )
+                } else {
+                    constant2141_out1.expand(shape)
+                }
             };
             let unsqueeze416_out1: Tensor<3, Int> = expand80_out1
                 .unsqueeze_dims::<3>(&[-1]);
@@ -9177,7 +9522,15 @@ impl Submodule13 {
                     shape[dim_offset] = input_dims[i] as i64;
                 }
             }
-            range10_out1.expand(shape)
+            if shape.contains(&0) {
+                // ONNX broadcasts a size-1 dim down to 0; burn's expand rejects that.
+                Tensor::empty(
+                    shape.map(|dim| dim as usize),
+                    (&self.device, range10_out1.dtype()),
+                )
+            } else {
+                range10_out1.expand(shape)
+            }
         };
         let tile5_out1 = {
             let repeats: alloc::vec::Vec<usize> = unsqueeze196_out1
@@ -9970,7 +10323,15 @@ impl Submodule14 {
                     shape[dim_offset] = input_dims[i] as i64;
                 }
             }
-            unsqueeze203_out1.clone().expand(shape)
+            if shape.contains(&0) {
+                // ONNX broadcasts a size-1 dim down to 0; burn's expand rejects that.
+                Tensor::empty(
+                    shape.map(|dim| dim as usize),
+                    (&self.device, unsqueeze203_out1.clone().dtype()),
+                )
+            } else {
+                unsqueeze203_out1.clone().expand(shape)
+            }
         };
         let constant1572_out1 = 0f32;
         let where39_out1 = transpose67_out1.mask_fill(expand18_out1, constant1572_out1);
@@ -10154,7 +10515,15 @@ impl Submodule14 {
                     shape[dim_offset] = input_dims[i] as i64;
                 }
             }
-            unsqueeze203_out1.clone().expand(shape)
+            if shape.contains(&0) {
+                // ONNX broadcasts a size-1 dim down to 0; burn's expand rejects that.
+                Tensor::empty(
+                    shape.map(|dim| dim as usize),
+                    (&self.device, unsqueeze203_out1.clone().dtype()),
+                )
+            } else {
+                unsqueeze203_out1.clone().expand(shape)
+            }
         };
         let constant1599_out1 = 0f32;
         let where42_out1 = transpose71_out1.mask_fill(expand19_out1, constant1599_out1);
@@ -10398,7 +10767,15 @@ impl Submodule15 {
                     shape[dim_offset] = input_dims[i] as i64;
                 }
             }
-            range12_out1.expand(shape)
+            if shape.contains(&0) {
+                // ONNX broadcasts a size-1 dim down to 0; burn's expand rejects that.
+                Tensor::empty(
+                    shape.map(|dim| dim as usize),
+                    (&self.device, range12_out1.dtype()),
+                )
+            } else {
+                range12_out1.expand(shape)
+            }
         };
         let tile6_out1 = {
             let repeats: alloc::vec::Vec<usize> = unsqueeze232_out1
@@ -11191,7 +11568,15 @@ impl Submodule16 {
                     shape[dim_offset] = input_dims[i] as i64;
                 }
             }
-            unsqueeze203_out1.clone().expand(shape)
+            if shape.contains(&0) {
+                // ONNX broadcasts a size-1 dim down to 0; burn's expand rejects that.
+                Tensor::empty(
+                    shape.map(|dim| dim as usize),
+                    (&self.device, unsqueeze203_out1.clone().dtype()),
+                )
+            } else {
+                unsqueeze203_out1.clone().expand(shape)
+            }
         };
         let constant1712_out1 = 0f32;
         let where47_out1 = transpose81_out1.mask_fill(expand21_out1, constant1712_out1);
@@ -11375,7 +11760,15 @@ impl Submodule16 {
                     shape[dim_offset] = input_dims[i] as i64;
                 }
             }
-            unsqueeze203_out1.expand(shape)
+            if shape.contains(&0) {
+                // ONNX broadcasts a size-1 dim down to 0; burn's expand rejects that.
+                Tensor::empty(
+                    shape.map(|dim| dim as usize),
+                    (&self.device, unsqueeze203_out1.dtype()),
+                )
+            } else {
+                unsqueeze203_out1.expand(shape)
+            }
         };
         let constant1739_out1 = 0f32;
         let where50_out1 = transpose85_out1.mask_fill(expand22_out1, constant1739_out1);
@@ -11619,7 +12012,15 @@ impl Submodule17 {
                     shape[dim_offset] = input_dims[i] as i64;
                 }
             }
-            range14_out1.expand(shape)
+            if shape.contains(&0) {
+                // ONNX broadcasts a size-1 dim down to 0; burn's expand rejects that.
+                Tensor::empty(
+                    shape.map(|dim| dim as usize),
+                    (&self.device, range14_out1.dtype()),
+                )
+            } else {
+                range14_out1.expand(shape)
+            }
         };
         let tile7_out1 = {
             let repeats: alloc::vec::Vec<usize> = unsqueeze267_out1
@@ -12412,7 +12813,15 @@ impl Submodule18 {
                     shape[dim_offset] = input_dims[i] as i64;
                 }
             }
-            unsqueeze203_out1.clone().expand(shape)
+            if shape.contains(&0) {
+                // ONNX broadcasts a size-1 dim down to 0; burn's expand rejects that.
+                Tensor::empty(
+                    shape.map(|dim| dim as usize),
+                    (&self.device, unsqueeze203_out1.clone().dtype()),
+                )
+            } else {
+                unsqueeze203_out1.clone().expand(shape)
+            }
         };
         let constant1852_out1 = 0f32;
         let where55_out1 = transpose95_out1.mask_fill(expand24_out1, constant1852_out1);
@@ -12596,7 +13005,15 @@ impl Submodule18 {
                     shape[dim_offset] = input_dims[i] as i64;
                 }
             }
-            unsqueeze203_out1.expand(shape)
+            if shape.contains(&0) {
+                // ONNX broadcasts a size-1 dim down to 0; burn's expand rejects that.
+                Tensor::empty(
+                    shape.map(|dim| dim as usize),
+                    (&self.device, unsqueeze203_out1.dtype()),
+                )
+            } else {
+                unsqueeze203_out1.expand(shape)
+            }
         };
         let constant1879_out1 = 0f32;
         let where58_out1 = transpose99_out1.mask_fill(expand25_out1, constant1879_out1);
@@ -12797,7 +13214,15 @@ impl Submodule19 {
                     shape[dim_offset] = input_dims[i] as i64;
                 }
             }
-            unsqueeze294_out1.expand(shape)
+            if shape.contains(&0) {
+                // ONNX broadcasts a size-1 dim down to 0; burn's expand rejects that.
+                Tensor::empty(
+                    shape.map(|dim| dim as usize),
+                    (&self.device, unsqueeze294_out1.dtype()),
+                )
+            } else {
+                unsqueeze294_out1.expand(shape)
+            }
         };
         let constant1902_out1 = 4i64;
         let mul190_out1 = gather177_out1 * constant1902_out1;
@@ -12937,7 +13362,15 @@ impl Submodule19 {
                     shape[dim_offset] = input_dims[i] as i64;
                 }
             }
-            slice92_out1.expand(shape)
+            if shape.contains(&0) {
+                // ONNX broadcasts a size-1 dim down to 0; burn's expand rejects that.
+                Tensor::empty(
+                    shape.map(|dim| dim as usize),
+                    (&self.device, slice92_out1.dtype()),
+                )
+            } else {
+                slice92_out1.expand(shape)
+            }
         };
         let concat125_out1 = burn::tensor::Tensor::cat(
             [concat123_out1.clone(), expand27_out1].into(),
@@ -13315,7 +13748,15 @@ impl Submodule20 {
                         shape[dim_offset] = input_dims[i] as i64;
                     }
                 }
-                cos7_out1.expand(shape)
+                if shape.contains(&0) {
+                    // ONNX broadcasts a size-1 dim down to 0; burn's expand rejects that.
+                    Tensor::empty(
+                        shape.map(|dim| dim as usize),
+                        (&self.device, cos7_out1.dtype()),
+                    )
+                } else {
+                    cos7_out1.expand(shape)
+                }
             };
             let shape343_out1: [i64; 2] = {
                 let axes = &constantofshape60_out1.clone().dims()[0..2];
@@ -13417,7 +13858,15 @@ impl Submodule20 {
                         shape[dim_offset] = input_dims[i] as i64;
                     }
                 }
-                reshape141_out1.expand(shape)
+                if shape.contains(&0) {
+                    // ONNX broadcasts a size-1 dim down to 0; burn's expand rejects that.
+                    Tensor::empty(
+                        shape.map(|dim| dim as usize),
+                        (&self.device, reshape141_out1.dtype()),
+                    )
+                } else {
+                    reshape141_out1.expand(shape)
+                }
             };
             let unsqueeze524_out1: Tensor<3, Int> = expand84_out1
                 .unsqueeze_dims::<3>(&[-1]);
@@ -13463,7 +13912,15 @@ impl Submodule20 {
                         shape[dim_offset] = input_dims[i] as i64;
                     }
                 }
-                slice175_out1.expand(shape)
+                if shape.contains(&0) {
+                    // ONNX broadcasts a size-1 dim down to 0; burn's expand rejects that.
+                    Tensor::empty(
+                        shape.map(|dim| dim as usize),
+                        (&self.device, slice175_out1.dtype()),
+                    )
+                } else {
+                    slice175_out1.expand(shape)
+                }
             };
             let unsqueeze525_out1: Tensor<3, Int> = expand85_out1
                 .unsqueeze_dims::<3>(&[-1]);
@@ -13537,7 +13994,15 @@ impl Submodule20 {
                         shape[dim_offset] = input_dims[i] as i64;
                     }
                 }
-                sin7_out1.expand(shape)
+                if shape.contains(&0) {
+                    // ONNX broadcasts a size-1 dim down to 0; burn's expand rejects that.
+                    Tensor::empty(
+                        shape.map(|dim| dim as usize),
+                        (&self.device, sin7_out1.dtype()),
+                    )
+                } else {
+                    sin7_out1.expand(shape)
+                }
             };
             let shape350_out1: [i64; 2] = {
                 let axes = &scatternd19_out1.clone().dims()[0..2];
@@ -13639,7 +14104,15 @@ impl Submodule20 {
                         shape[dim_offset] = input_dims[i] as i64;
                     }
                 }
-                reshape143_out1.expand(shape)
+                if shape.contains(&0) {
+                    // ONNX broadcasts a size-1 dim down to 0; burn's expand rejects that.
+                    Tensor::empty(
+                        shape.map(|dim| dim as usize),
+                        (&self.device, reshape143_out1.dtype()),
+                    )
+                } else {
+                    reshape143_out1.expand(shape)
+                }
             };
             let unsqueeze536_out1: Tensor<3, Int> = expand87_out1
                 .unsqueeze_dims::<3>(&[-1]);
@@ -13685,7 +14158,15 @@ impl Submodule20 {
                         shape[dim_offset] = input_dims[i] as i64;
                     }
                 }
-                slice180_out1.expand(shape)
+                if shape.contains(&0) {
+                    // ONNX broadcasts a size-1 dim down to 0; burn's expand rejects that.
+                    Tensor::empty(
+                        shape.map(|dim| dim as usize),
+                        (&self.device, slice180_out1.dtype()),
+                    )
+                } else {
+                    slice180_out1.expand(shape)
+                }
             };
             let unsqueeze537_out1: Tensor<3, Int> = expand88_out1
                 .unsqueeze_dims::<3>(&[-1]);
@@ -13754,7 +14235,15 @@ impl Submodule20 {
             };
             let expand89_out1 = {
                 let shape: [i64; 1] = shape356_out1;
-                constant2621_out1.expand(shape)
+                if shape.contains(&0) {
+                    // ONNX broadcasts a size-1 dim down to 0; burn's expand rejects that.
+                    Tensor::empty(
+                        shape.map(|dim| dim as usize),
+                        (&self.device, constant2621_out1.dtype()),
+                    )
+                } else {
+                    constant2621_out1.expand(shape)
+                }
             };
             let shape357_out1: [i64; 2] = {
                 let axes = &scatternd20_out1.clone().dims()[0..2];
@@ -13835,7 +14324,15 @@ impl Submodule20 {
                         shape[dim_offset] = input_dims[i] as i64;
                     }
                 }
-                reshape145_out1.expand(shape)
+                if shape.contains(&0) {
+                    // ONNX broadcasts a size-1 dim down to 0; burn's expand rejects that.
+                    Tensor::empty(
+                        shape.map(|dim| dim as usize),
+                        (&self.device, reshape145_out1.dtype()),
+                    )
+                } else {
+                    reshape145_out1.expand(shape)
+                }
             };
             let unsqueeze542_out1: Tensor<3, Int> = expand90_out1
                 .unsqueeze_dims::<3>(&[-1]);
@@ -13881,7 +14378,15 @@ impl Submodule20 {
                         shape[dim_offset] = input_dims[i] as i64;
                     }
                 }
-                constant2630_out1.expand(shape)
+                if shape.contains(&0) {
+                    // ONNX broadcasts a size-1 dim down to 0; burn's expand rejects that.
+                    Tensor::empty(
+                        shape.map(|dim| dim as usize),
+                        (&self.device, constant2630_out1.dtype()),
+                    )
+                } else {
+                    constant2630_out1.expand(shape)
+                }
             };
             let unsqueeze543_out1: Tensor<3, Int> = expand91_out1
                 .unsqueeze_dims::<3>(&[-1]);
@@ -14097,7 +14602,15 @@ impl Submodule20 {
                     shape[dim_offset] = input_dims[i] as i64;
                 }
             }
-            range16_out1.expand(shape)
+            if shape.contains(&0) {
+                // ONNX broadcasts a size-1 dim down to 0; burn's expand rejects that.
+                Tensor::empty(
+                    shape.map(|dim| dim as usize),
+                    (&self.device, range16_out1.dtype()),
+                )
+            } else {
+                range16_out1.expand(shape)
+            }
         };
         let tile8_out1 = {
             let repeats: alloc::vec::Vec<usize> = unsqueeze323_out1
@@ -14891,7 +15404,15 @@ impl Submodule21 {
                     shape[dim_offset] = input_dims[i] as i64;
                 }
             }
-            unsqueeze330_out1.clone().expand(shape)
+            if shape.contains(&0) {
+                // ONNX broadcasts a size-1 dim down to 0; burn's expand rejects that.
+                Tensor::empty(
+                    shape.map(|dim| dim as usize),
+                    (&self.device, unsqueeze330_out1.clone().dtype()),
+                )
+            } else {
+                unsqueeze330_out1.clone().expand(shape)
+            }
         };
         let constant2061_out1 = 0f32;
         let where65_out1 = transpose109_out1.mask_fill(expand29_out1, constant2061_out1);
@@ -15075,7 +15596,15 @@ impl Submodule21 {
                     shape[dim_offset] = input_dims[i] as i64;
                 }
             }
-            unsqueeze330_out1.clone().expand(shape)
+            if shape.contains(&0) {
+                // ONNX broadcasts a size-1 dim down to 0; burn's expand rejects that.
+                Tensor::empty(
+                    shape.map(|dim| dim as usize),
+                    (&self.device, unsqueeze330_out1.clone().dtype()),
+                )
+            } else {
+                unsqueeze330_out1.clone().expand(shape)
+            }
         };
         let constant2088_out1 = 0f32;
         let where68_out1 = transpose113_out1.mask_fill(expand30_out1, constant2088_out1);
@@ -15319,7 +15848,15 @@ impl Submodule22 {
                     shape[dim_offset] = input_dims[i] as i64;
                 }
             }
-            range18_out1.expand(shape)
+            if shape.contains(&0) {
+                // ONNX broadcasts a size-1 dim down to 0; burn's expand rejects that.
+                Tensor::empty(
+                    shape.map(|dim| dim as usize),
+                    (&self.device, range18_out1.dtype()),
+                )
+            } else {
+                range18_out1.expand(shape)
+            }
         };
         let tile9_out1 = {
             let repeats: alloc::vec::Vec<usize> = unsqueeze359_out1
@@ -16112,7 +16649,15 @@ impl Submodule23 {
                     shape[dim_offset] = input_dims[i] as i64;
                 }
             }
-            unsqueeze330_out1.clone().expand(shape)
+            if shape.contains(&0) {
+                // ONNX broadcasts a size-1 dim down to 0; burn's expand rejects that.
+                Tensor::empty(
+                    shape.map(|dim| dim as usize),
+                    (&self.device, unsqueeze330_out1.clone().dtype()),
+                )
+            } else {
+                unsqueeze330_out1.clone().expand(shape)
+            }
         };
         let constant2201_out1 = 0f32;
         let where73_out1 = transpose123_out1.mask_fill(expand32_out1, constant2201_out1);
@@ -16296,7 +16841,15 @@ impl Submodule23 {
                     shape[dim_offset] = input_dims[i] as i64;
                 }
             }
-            unsqueeze330_out1.expand(shape)
+            if shape.contains(&0) {
+                // ONNX broadcasts a size-1 dim down to 0; burn's expand rejects that.
+                Tensor::empty(
+                    shape.map(|dim| dim as usize),
+                    (&self.device, unsqueeze330_out1.dtype()),
+                )
+            } else {
+                unsqueeze330_out1.expand(shape)
+            }
         };
         let constant2228_out1 = 0f32;
         let where76_out1 = transpose127_out1.mask_fill(expand33_out1, constant2228_out1);
@@ -16540,7 +17093,15 @@ impl Submodule24 {
                     shape[dim_offset] = input_dims[i] as i64;
                 }
             }
-            range20_out1.expand(shape)
+            if shape.contains(&0) {
+                // ONNX broadcasts a size-1 dim down to 0; burn's expand rejects that.
+                Tensor::empty(
+                    shape.map(|dim| dim as usize),
+                    (&self.device, range20_out1.dtype()),
+                )
+            } else {
+                range20_out1.expand(shape)
+            }
         };
         let tile10_out1 = {
             let repeats: alloc::vec::Vec<usize> = unsqueeze394_out1
@@ -17333,7 +17894,15 @@ impl Submodule25 {
                     shape[dim_offset] = input_dims[i] as i64;
                 }
             }
-            unsqueeze330_out1.clone().expand(shape)
+            if shape.contains(&0) {
+                // ONNX broadcasts a size-1 dim down to 0; burn's expand rejects that.
+                Tensor::empty(
+                    shape.map(|dim| dim as usize),
+                    (&self.device, unsqueeze330_out1.clone().dtype()),
+                )
+            } else {
+                unsqueeze330_out1.clone().expand(shape)
+            }
         };
         let constant2341_out1 = 0f32;
         let where81_out1 = transpose137_out1.mask_fill(expand35_out1, constant2341_out1);
@@ -17517,7 +18086,15 @@ impl Submodule25 {
                     shape[dim_offset] = input_dims[i] as i64;
                 }
             }
-            unsqueeze330_out1.expand(shape)
+            if shape.contains(&0) {
+                // ONNX broadcasts a size-1 dim down to 0; burn's expand rejects that.
+                Tensor::empty(
+                    shape.map(|dim| dim as usize),
+                    (&self.device, unsqueeze330_out1.dtype()),
+                )
+            } else {
+                unsqueeze330_out1.expand(shape)
+            }
         };
         let constant2368_out1 = 0f32;
         let where84_out1 = transpose141_out1.mask_fill(expand36_out1, constant2368_out1);
@@ -17761,7 +18338,15 @@ impl Submodule26 {
                     shape[dim_offset] = input_dims[i] as i64;
                 }
             }
-            range22_out1.expand(shape)
+            if shape.contains(&0) {
+                // ONNX broadcasts a size-1 dim down to 0; burn's expand rejects that.
+                Tensor::empty(
+                    shape.map(|dim| dim as usize),
+                    (&self.device, range22_out1.dtype()),
+                )
+            } else {
+                range22_out1.expand(shape)
+            }
         };
         let tile11_out1 = {
             let repeats: alloc::vec::Vec<usize> = unsqueeze429_out1
@@ -18554,7 +19139,15 @@ impl Submodule27 {
                     shape[dim_offset] = input_dims[i] as i64;
                 }
             }
-            unsqueeze330_out1.clone().expand(shape)
+            if shape.contains(&0) {
+                // ONNX broadcasts a size-1 dim down to 0; burn's expand rejects that.
+                Tensor::empty(
+                    shape.map(|dim| dim as usize),
+                    (&self.device, unsqueeze330_out1.clone().dtype()),
+                )
+            } else {
+                unsqueeze330_out1.clone().expand(shape)
+            }
         };
         let constant2481_out1 = 0f32;
         let where89_out1 = transpose151_out1.mask_fill(expand38_out1, constant2481_out1);
@@ -18738,7 +19331,15 @@ impl Submodule27 {
                     shape[dim_offset] = input_dims[i] as i64;
                 }
             }
-            unsqueeze330_out1.expand(shape)
+            if shape.contains(&0) {
+                // ONNX broadcasts a size-1 dim down to 0; burn's expand rejects that.
+                Tensor::empty(
+                    shape.map(|dim| dim as usize),
+                    (&self.device, unsqueeze330_out1.dtype()),
+                )
+            } else {
+                unsqueeze330_out1.expand(shape)
+            }
         };
         let constant2508_out1 = 0f32;
         let where92_out1 = transpose155_out1.mask_fill(expand39_out1, constant2508_out1);
@@ -18938,7 +19539,15 @@ impl Submodule28 {
                     shape[dim_offset] = input_dims[i] as i64;
                 }
             }
-            unsqueeze456_out1.expand(shape)
+            if shape.contains(&0) {
+                // ONNX broadcasts a size-1 dim down to 0; burn's expand rejects that.
+                Tensor::empty(
+                    shape.map(|dim| dim as usize),
+                    (&self.device, unsqueeze456_out1.dtype()),
+                )
+            } else {
+                unsqueeze456_out1.expand(shape)
+            }
         };
         let constant2531_out1 = 8i64;
         let mul293_out1 = gather273_out1 * constant2531_out1;
@@ -19042,7 +19651,15 @@ impl Submodule28 {
                     shape[dim_offset] = input_dims[i] as i64;
                 }
             }
-            slice141_out1.expand(shape)
+            if shape.contains(&0) {
+                // ONNX broadcasts a size-1 dim down to 0; burn's expand rejects that.
+                Tensor::empty(
+                    shape.map(|dim| dim as usize),
+                    (&self.device, slice141_out1.dtype()),
+                )
+            } else {
+                slice141_out1.expand(shape)
+            }
         };
         let concat190_out1 = burn::tensor::Tensor::cat(
             [slice140_out1.clone(), expand41_out1].into(),
@@ -19420,7 +20037,15 @@ impl Submodule29 {
                         shape[dim_offset] = input_dims[i] as i64;
                     }
                 }
-                cos7_out1.expand(shape)
+                if shape.contains(&0) {
+                    // ONNX broadcasts a size-1 dim down to 0; burn's expand rejects that.
+                    Tensor::empty(
+                        shape.map(|dim| dim as usize),
+                        (&self.device, cos7_out1.dtype()),
+                    )
+                } else {
+                    cos7_out1.expand(shape)
+                }
             };
             let shape450_out1: [i64; 2] = {
                 let axes = &constantofshape66_out1.clone().dims()[0..2];
@@ -19522,7 +20147,15 @@ impl Submodule29 {
                         shape[dim_offset] = input_dims[i] as i64;
                     }
                 }
-                reshape197_out1.expand(shape)
+                if shape.contains(&0) {
+                    // ONNX broadcasts a size-1 dim down to 0; burn's expand rejects that.
+                    Tensor::empty(
+                        shape.map(|dim| dim as usize),
+                        (&self.device, reshape197_out1.dtype()),
+                    )
+                } else {
+                    reshape197_out1.expand(shape)
+                }
             };
             let unsqueeze683_out1: Tensor<3, Int> = expand98_out1
                 .unsqueeze_dims::<3>(&[-1]);
@@ -19568,7 +20201,15 @@ impl Submodule29 {
                         shape[dim_offset] = input_dims[i] as i64;
                     }
                 }
-                slice224_out1.expand(shape)
+                if shape.contains(&0) {
+                    // ONNX broadcasts a size-1 dim down to 0; burn's expand rejects that.
+                    Tensor::empty(
+                        shape.map(|dim| dim as usize),
+                        (&self.device, slice224_out1.dtype()),
+                    )
+                } else {
+                    slice224_out1.expand(shape)
+                }
             };
             let unsqueeze684_out1: Tensor<3, Int> = expand99_out1
                 .unsqueeze_dims::<3>(&[-1]);
@@ -19642,7 +20283,15 @@ impl Submodule29 {
                         shape[dim_offset] = input_dims[i] as i64;
                     }
                 }
-                sin7_out1.expand(shape)
+                if shape.contains(&0) {
+                    // ONNX broadcasts a size-1 dim down to 0; burn's expand rejects that.
+                    Tensor::empty(
+                        shape.map(|dim| dim as usize),
+                        (&self.device, sin7_out1.dtype()),
+                    )
+                } else {
+                    sin7_out1.expand(shape)
+                }
             };
             let shape457_out1: [i64; 2] = {
                 let axes = &scatternd19_out1.clone().dims()[0..2];
@@ -19744,7 +20393,15 @@ impl Submodule29 {
                         shape[dim_offset] = input_dims[i] as i64;
                     }
                 }
-                reshape199_out1.expand(shape)
+                if shape.contains(&0) {
+                    // ONNX broadcasts a size-1 dim down to 0; burn's expand rejects that.
+                    Tensor::empty(
+                        shape.map(|dim| dim as usize),
+                        (&self.device, reshape199_out1.dtype()),
+                    )
+                } else {
+                    reshape199_out1.expand(shape)
+                }
             };
             let unsqueeze695_out1: Tensor<3, Int> = expand101_out1
                 .unsqueeze_dims::<3>(&[-1]);
@@ -19790,7 +20447,15 @@ impl Submodule29 {
                         shape[dim_offset] = input_dims[i] as i64;
                     }
                 }
-                slice229_out1.expand(shape)
+                if shape.contains(&0) {
+                    // ONNX broadcasts a size-1 dim down to 0; burn's expand rejects that.
+                    Tensor::empty(
+                        shape.map(|dim| dim as usize),
+                        (&self.device, slice229_out1.dtype()),
+                    )
+                } else {
+                    slice229_out1.expand(shape)
+                }
             };
             let unsqueeze696_out1: Tensor<3, Int> = expand102_out1
                 .unsqueeze_dims::<3>(&[-1]);
@@ -19859,7 +20524,15 @@ impl Submodule29 {
             };
             let expand103_out1 = {
                 let shape: [i64; 1] = shape463_out1;
-                constant3243_out1.expand(shape)
+                if shape.contains(&0) {
+                    // ONNX broadcasts a size-1 dim down to 0; burn's expand rejects that.
+                    Tensor::empty(
+                        shape.map(|dim| dim as usize),
+                        (&self.device, constant3243_out1.dtype()),
+                    )
+                } else {
+                    constant3243_out1.expand(shape)
+                }
             };
             let shape464_out1: [i64; 2] = {
                 let axes = &scatternd20_out1.clone().dims()[0..2];
@@ -19940,7 +20613,15 @@ impl Submodule29 {
                         shape[dim_offset] = input_dims[i] as i64;
                     }
                 }
-                reshape201_out1.expand(shape)
+                if shape.contains(&0) {
+                    // ONNX broadcasts a size-1 dim down to 0; burn's expand rejects that.
+                    Tensor::empty(
+                        shape.map(|dim| dim as usize),
+                        (&self.device, reshape201_out1.dtype()),
+                    )
+                } else {
+                    reshape201_out1.expand(shape)
+                }
             };
             let unsqueeze701_out1: Tensor<3, Int> = expand104_out1
                 .unsqueeze_dims::<3>(&[-1]);
@@ -19986,7 +20667,15 @@ impl Submodule29 {
                         shape[dim_offset] = input_dims[i] as i64;
                     }
                 }
-                constant3252_out1.expand(shape)
+                if shape.contains(&0) {
+                    // ONNX broadcasts a size-1 dim down to 0; burn's expand rejects that.
+                    Tensor::empty(
+                        shape.map(|dim| dim as usize),
+                        (&self.device, constant3252_out1.dtype()),
+                    )
+                } else {
+                    constant3252_out1.expand(shape)
+                }
             };
             let unsqueeze702_out1: Tensor<3, Int> = expand105_out1
                 .unsqueeze_dims::<3>(&[-1]);
@@ -20202,7 +20891,15 @@ impl Submodule29 {
                     shape[dim_offset] = input_dims[i] as i64;
                 }
             }
-            range24_out1.expand(shape)
+            if shape.contains(&0) {
+                // ONNX broadcasts a size-1 dim down to 0; burn's expand rejects that.
+                Tensor::empty(
+                    shape.map(|dim| dim as usize),
+                    (&self.device, range24_out1.dtype()),
+                )
+            } else {
+                range24_out1.expand(shape)
+            }
         };
         let tile12_out1 = {
             let repeats: alloc::vec::Vec<usize> = unsqueeze482_out1
@@ -20995,7 +21692,15 @@ impl Submodule30 {
                     shape[dim_offset] = input_dims[i] as i64;
                 }
             }
-            unsqueeze203_out1.clone().expand(shape)
+            if shape.contains(&0) {
+                // ONNX broadcasts a size-1 dim down to 0; burn's expand rejects that.
+                Tensor::empty(
+                    shape.map(|dim| dim as usize),
+                    (&self.device, unsqueeze203_out1.clone().dtype()),
+                )
+            } else {
+                unsqueeze203_out1.clone().expand(shape)
+            }
         };
         let constant2682_out1 = 0f32;
         let where99_out1 = transpose165_out1.mask_fill(expand43_out1, constant2682_out1);
@@ -21179,7 +21884,15 @@ impl Submodule30 {
                     shape[dim_offset] = input_dims[i] as i64;
                 }
             }
-            unsqueeze203_out1.expand(shape)
+            if shape.contains(&0) {
+                // ONNX broadcasts a size-1 dim down to 0; burn's expand rejects that.
+                Tensor::empty(
+                    shape.map(|dim| dim as usize),
+                    (&self.device, unsqueeze203_out1.dtype()),
+                )
+            } else {
+                unsqueeze203_out1.expand(shape)
+            }
         };
         let constant2709_out1 = 0f32;
         let where102_out1 = transpose169_out1
@@ -21424,7 +22137,15 @@ impl Submodule31 {
                     shape[dim_offset] = input_dims[i] as i64;
                 }
             }
-            range26_out1.expand(shape)
+            if shape.contains(&0) {
+                // ONNX broadcasts a size-1 dim down to 0; burn's expand rejects that.
+                Tensor::empty(
+                    shape.map(|dim| dim as usize),
+                    (&self.device, range26_out1.dtype()),
+                )
+            } else {
+                range26_out1.expand(shape)
+            }
         };
         let tile13_out1 = {
             let repeats: alloc::vec::Vec<usize> = unsqueeze517_out1
@@ -22217,7 +22938,15 @@ impl Submodule32 {
                     shape[dim_offset] = input_dims[i] as i64;
                 }
             }
-            unsqueeze203_out1.clone().expand(shape)
+            if shape.contains(&0) {
+                // ONNX broadcasts a size-1 dim down to 0; burn's expand rejects that.
+                Tensor::empty(
+                    shape.map(|dim| dim as usize),
+                    (&self.device, unsqueeze203_out1.clone().dtype()),
+                )
+            } else {
+                unsqueeze203_out1.clone().expand(shape)
+            }
         };
         let constant2822_out1 = 0f32;
         let where107_out1 = transpose179_out1
@@ -22402,7 +23131,15 @@ impl Submodule32 {
                     shape[dim_offset] = input_dims[i] as i64;
                 }
             }
-            unsqueeze203_out1.expand(shape)
+            if shape.contains(&0) {
+                // ONNX broadcasts a size-1 dim down to 0; burn's expand rejects that.
+                Tensor::empty(
+                    shape.map(|dim| dim as usize),
+                    (&self.device, unsqueeze203_out1.dtype()),
+                )
+            } else {
+                unsqueeze203_out1.expand(shape)
+            }
         };
         let constant2849_out1 = 0f32;
         let where110_out1 = transpose183_out1
@@ -22647,7 +23384,15 @@ impl Submodule33 {
                     shape[dim_offset] = input_dims[i] as i64;
                 }
             }
-            range28_out1.expand(shape)
+            if shape.contains(&0) {
+                // ONNX broadcasts a size-1 dim down to 0; burn's expand rejects that.
+                Tensor::empty(
+                    shape.map(|dim| dim as usize),
+                    (&self.device, range28_out1.dtype()),
+                )
+            } else {
+                range28_out1.expand(shape)
+            }
         };
         let tile14_out1 = {
             let repeats: alloc::vec::Vec<usize> = unsqueeze552_out1
@@ -23440,7 +24185,15 @@ impl Submodule34 {
                     shape[dim_offset] = input_dims[i] as i64;
                 }
             }
-            unsqueeze203_out1.clone().expand(shape)
+            if shape.contains(&0) {
+                // ONNX broadcasts a size-1 dim down to 0; burn's expand rejects that.
+                Tensor::empty(
+                    shape.map(|dim| dim as usize),
+                    (&self.device, unsqueeze203_out1.clone().dtype()),
+                )
+            } else {
+                unsqueeze203_out1.clone().expand(shape)
+            }
         };
         let constant2962_out1 = 0f32;
         let where115_out1 = transpose193_out1
@@ -23625,7 +24378,15 @@ impl Submodule34 {
                     shape[dim_offset] = input_dims[i] as i64;
                 }
             }
-            unsqueeze203_out1.expand(shape)
+            if shape.contains(&0) {
+                // ONNX broadcasts a size-1 dim down to 0; burn's expand rejects that.
+                Tensor::empty(
+                    shape.map(|dim| dim as usize),
+                    (&self.device, unsqueeze203_out1.dtype()),
+                )
+            } else {
+                unsqueeze203_out1.expand(shape)
+            }
         };
         let constant2989_out1 = 0f32;
         let where118_out1 = transpose197_out1
@@ -24043,7 +24804,15 @@ impl Submodule35 {
                     shape[dim_offset] = input_dims[i] as i64;
                 }
             }
-            unsqueeze579_out1.expand(shape)
+            if shape.contains(&0) {
+                // ONNX broadcasts a size-1 dim down to 0; burn's expand rejects that.
+                Tensor::empty(
+                    shape.map(|dim| dim as usize),
+                    (&self.device, unsqueeze579_out1.dtype()),
+                )
+            } else {
+                unsqueeze579_out1.expand(shape)
+            }
         };
         let constant3012_out1 = 4i64;
         let mul372_out1 = gather345_out1 * constant3012_out1;
@@ -24147,7 +24916,15 @@ impl Submodule35 {
                     shape[dim_offset] = input_dims[i] as i64;
                 }
             }
-            slice179_out1.expand(shape)
+            if shape.contains(&0) {
+                // ONNX broadcasts a size-1 dim down to 0; burn's expand rejects that.
+                Tensor::empty(
+                    shape.map(|dim| dim as usize),
+                    (&self.device, slice179_out1.dtype()),
+                )
+            } else {
+                slice179_out1.expand(shape)
+            }
         };
         let concat240_out1 = burn::tensor::Tensor::cat(
             [slice178_out1.clone(), expand52_out1].into(),
@@ -24282,7 +25059,15 @@ impl Submodule35 {
                         shape[dim_offset] = input_dims[i] as i64;
                     }
                 }
-                cos7_out1.expand(shape)
+                if shape.contains(&0) {
+                    // ONNX broadcasts a size-1 dim down to 0; burn's expand rejects that.
+                    Tensor::empty(
+                        shape.map(|dim| dim as usize),
+                        (&self.device, cos7_out1.dtype()),
+                    )
+                } else {
+                    cos7_out1.expand(shape)
+                }
             };
             let shape533_out1: [i64; 2] = {
                 let axes = &constantofshape71_out1.clone().dims()[0..2];
@@ -24384,7 +25169,15 @@ impl Submodule35 {
                         shape[dim_offset] = input_dims[i] as i64;
                     }
                 }
-                reshape240_out1.expand(shape)
+                if shape.contains(&0) {
+                    // ONNX broadcasts a size-1 dim down to 0; burn's expand rejects that.
+                    Tensor::empty(
+                        shape.map(|dim| dim as usize),
+                        (&self.device, reshape240_out1.dtype()),
+                    )
+                } else {
+                    reshape240_out1.expand(shape)
+                }
             };
             let unsqueeze806_out1: Tensor<3, Int> = expand109_out1
                 .unsqueeze_dims::<3>(&[-1]);
@@ -24430,7 +25223,15 @@ impl Submodule35 {
                         shape[dim_offset] = input_dims[i] as i64;
                     }
                 }
-                slice262_out1.expand(shape)
+                if shape.contains(&0) {
+                    // ONNX broadcasts a size-1 dim down to 0; burn's expand rejects that.
+                    Tensor::empty(
+                        shape.map(|dim| dim as usize),
+                        (&self.device, slice262_out1.dtype()),
+                    )
+                } else {
+                    slice262_out1.expand(shape)
+                }
             };
             let unsqueeze807_out1: Tensor<3, Int> = expand110_out1
                 .unsqueeze_dims::<3>(&[-1]);
@@ -24504,7 +25305,15 @@ impl Submodule35 {
                         shape[dim_offset] = input_dims[i] as i64;
                     }
                 }
-                sin7_out1.expand(shape)
+                if shape.contains(&0) {
+                    // ONNX broadcasts a size-1 dim down to 0; burn's expand rejects that.
+                    Tensor::empty(
+                        shape.map(|dim| dim as usize),
+                        (&self.device, sin7_out1.dtype()),
+                    )
+                } else {
+                    sin7_out1.expand(shape)
+                }
             };
             let shape540_out1: [i64; 2] = {
                 let axes = &scatternd19_out1.clone().dims()[0..2];
@@ -24606,7 +25415,15 @@ impl Submodule35 {
                         shape[dim_offset] = input_dims[i] as i64;
                     }
                 }
-                reshape242_out1.expand(shape)
+                if shape.contains(&0) {
+                    // ONNX broadcasts a size-1 dim down to 0; burn's expand rejects that.
+                    Tensor::empty(
+                        shape.map(|dim| dim as usize),
+                        (&self.device, reshape242_out1.dtype()),
+                    )
+                } else {
+                    reshape242_out1.expand(shape)
+                }
             };
             let unsqueeze818_out1: Tensor<3, Int> = expand112_out1
                 .unsqueeze_dims::<3>(&[-1]);
@@ -24652,7 +25469,15 @@ impl Submodule35 {
                         shape[dim_offset] = input_dims[i] as i64;
                     }
                 }
-                slice267_out1.expand(shape)
+                if shape.contains(&0) {
+                    // ONNX broadcasts a size-1 dim down to 0; burn's expand rejects that.
+                    Tensor::empty(
+                        shape.map(|dim| dim as usize),
+                        (&self.device, slice267_out1.dtype()),
+                    )
+                } else {
+                    slice267_out1.expand(shape)
+                }
             };
             let unsqueeze819_out1: Tensor<3, Int> = expand113_out1
                 .unsqueeze_dims::<3>(&[-1]);
@@ -24721,7 +25546,15 @@ impl Submodule35 {
             };
             let expand114_out1 = {
                 let shape: [i64; 1] = shape546_out1;
-                constant3724_out1.expand(shape)
+                if shape.contains(&0) {
+                    // ONNX broadcasts a size-1 dim down to 0; burn's expand rejects that.
+                    Tensor::empty(
+                        shape.map(|dim| dim as usize),
+                        (&self.device, constant3724_out1.dtype()),
+                    )
+                } else {
+                    constant3724_out1.expand(shape)
+                }
             };
             let shape547_out1: [i64; 2] = {
                 let axes = &scatternd20_out1.clone().dims()[0..2];
@@ -24802,7 +25635,15 @@ impl Submodule35 {
                         shape[dim_offset] = input_dims[i] as i64;
                     }
                 }
-                reshape244_out1.expand(shape)
+                if shape.contains(&0) {
+                    // ONNX broadcasts a size-1 dim down to 0; burn's expand rejects that.
+                    Tensor::empty(
+                        shape.map(|dim| dim as usize),
+                        (&self.device, reshape244_out1.dtype()),
+                    )
+                } else {
+                    reshape244_out1.expand(shape)
+                }
             };
             let unsqueeze824_out1: Tensor<3, Int> = expand115_out1
                 .unsqueeze_dims::<3>(&[-1]);
@@ -24848,7 +25689,15 @@ impl Submodule35 {
                         shape[dim_offset] = input_dims[i] as i64;
                     }
                 }
-                constant3733_out1.expand(shape)
+                if shape.contains(&0) {
+                    // ONNX broadcasts a size-1 dim down to 0; burn's expand rejects that.
+                    Tensor::empty(
+                        shape.map(|dim| dim as usize),
+                        (&self.device, constant3733_out1.dtype()),
+                    )
+                } else {
+                    constant3733_out1.expand(shape)
+                }
             };
             let unsqueeze825_out1: Tensor<3, Int> = expand116_out1
                 .unsqueeze_dims::<3>(&[-1]);
@@ -25091,7 +25940,15 @@ impl Submodule36 {
                     shape[dim_offset] = input_dims[i] as i64;
                 }
             }
-            range30_out1.expand(shape)
+            if shape.contains(&0) {
+                // ONNX broadcasts a size-1 dim down to 0; burn's expand rejects that.
+                Tensor::empty(
+                    shape.map(|dim| dim as usize),
+                    (&self.device, range30_out1.dtype()),
+                )
+            } else {
+                range30_out1.expand(shape)
+            }
         };
         let tile15_out1 = {
             let repeats: alloc::vec::Vec<usize> = unsqueeze605_out1
@@ -25884,7 +26741,15 @@ impl Submodule37 {
                     shape[dim_offset] = input_dims[i] as i64;
                 }
             }
-            unsqueeze111_out1.clone().expand(shape)
+            if shape.contains(&0) {
+                // ONNX broadcasts a size-1 dim down to 0; burn's expand rejects that.
+                Tensor::empty(
+                    shape.map(|dim| dim as usize),
+                    (&self.device, unsqueeze111_out1.clone().dtype()),
+                )
+            } else {
+                unsqueeze111_out1.clone().expand(shape)
+            }
         };
         let constant3163_out1 = 0f32;
         let where125_out1 = transpose207_out1
@@ -26069,7 +26934,15 @@ impl Submodule37 {
                     shape[dim_offset] = input_dims[i] as i64;
                 }
             }
-            unsqueeze111_out1.expand(shape)
+            if shape.contains(&0) {
+                // ONNX broadcasts a size-1 dim down to 0; burn's expand rejects that.
+                Tensor::empty(
+                    shape.map(|dim| dim as usize),
+                    (&self.device, unsqueeze111_out1.dtype()),
+                )
+            } else {
+                unsqueeze111_out1.expand(shape)
+            }
         };
         let constant3190_out1 = 0f32;
         let where128_out1 = transpose211_out1
@@ -26314,7 +27187,15 @@ impl Submodule38 {
                     shape[dim_offset] = input_dims[i] as i64;
                 }
             }
-            range32_out1.expand(shape)
+            if shape.contains(&0) {
+                // ONNX broadcasts a size-1 dim down to 0; burn's expand rejects that.
+                Tensor::empty(
+                    shape.map(|dim| dim as usize),
+                    (&self.device, range32_out1.dtype()),
+                )
+            } else {
+                range32_out1.expand(shape)
+            }
         };
         let tile16_out1 = {
             let repeats: alloc::vec::Vec<usize> = unsqueeze640_out1
@@ -27107,7 +27988,15 @@ impl Submodule39 {
                     shape[dim_offset] = input_dims[i] as i64;
                 }
             }
-            unsqueeze111_out1.clone().expand(shape)
+            if shape.contains(&0) {
+                // ONNX broadcasts a size-1 dim down to 0; burn's expand rejects that.
+                Tensor::empty(
+                    shape.map(|dim| dim as usize),
+                    (&self.device, unsqueeze111_out1.clone().dtype()),
+                )
+            } else {
+                unsqueeze111_out1.clone().expand(shape)
+            }
         };
         let constant3303_out1 = 0f32;
         let where133_out1 = transpose221_out1
@@ -27292,7 +28181,15 @@ impl Submodule39 {
                     shape[dim_offset] = input_dims[i] as i64;
                 }
             }
-            unsqueeze111_out1.expand(shape)
+            if shape.contains(&0) {
+                // ONNX broadcasts a size-1 dim down to 0; burn's expand rejects that.
+                Tensor::empty(
+                    shape.map(|dim| dim as usize),
+                    (&self.device, unsqueeze111_out1.dtype()),
+                )
+            } else {
+                unsqueeze111_out1.expand(shape)
+            }
         };
         let constant3330_out1 = 0f32;
         let where136_out1 = transpose225_out1
@@ -27545,7 +28442,15 @@ impl Submodule40 {
                     shape[dim_offset] = input_dims[i] as i64;
                 }
             }
-            unsqueeze667_out1.expand(shape)
+            if shape.contains(&0) {
+                // ONNX broadcasts a size-1 dim down to 0; burn's expand rejects that.
+                Tensor::empty(
+                    shape.map(|dim| dim as usize),
+                    (&self.device, unsqueeze667_out1.dtype()),
+                )
+            } else {
+                unsqueeze667_out1.expand(shape)
+            }
         };
         let constant3353_out1 = 2i64;
         let mul427_out1 = gather396_out1 * constant3353_out1;
@@ -27650,7 +28555,15 @@ impl Submodule40 {
                     shape[dim_offset] = input_dims[i] as i64;
                 }
             }
-            slice207_out1.expand(shape)
+            if shape.contains(&0) {
+                // ONNX broadcasts a size-1 dim down to 0; burn's expand rejects that.
+                Tensor::empty(
+                    shape.map(|dim| dim as usize),
+                    (&self.device, slice207_out1.dtype()),
+                )
+            } else {
+                slice207_out1.expand(shape)
+            }
         };
         let concat276_out1 = burn::tensor::Tensor::cat(
             [concat274_out1, expand60_out1].into(),

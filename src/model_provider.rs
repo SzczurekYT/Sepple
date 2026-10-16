@@ -35,9 +35,9 @@ pub enum ModelSetupError {
     MoveToDestination(io::Error),
 }
 
-const MODEL_URL: &str = "https://huggingface.co/SzczurekYT/wav2vec2-large-xlsr-japlmthufielta-ipa1000-ns-bpk/resolve/main/multipa_sim.bpk";
-const MODEL_FILE_NAME: &str = "multipa_model.bpk";
-const MODEL_SIZE_BYTES: u64 = 1263060956;
+const MODEL_URL: &str = "https://huggingface.co/SzczurekYT/zipa-small-crctc-ns-700k-bpk/resolve/main/zipa-small-crctc-ns.bpk";
+const MODEL_FILE_NAME: &str = "zipa-small-crctc-ns.bpk";
+const MODEL_SIZE_BYTES: u64 = 258760700;
 const MEGABYTE: usize = 1024 * 1024;
 
 pub fn ensure_downloaded_and_get_path(
