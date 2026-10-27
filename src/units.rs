@@ -5,6 +5,8 @@ pub const SAMPLE_RATE_USIZE: usize = 16_000;
 pub const SAMPLE_RATE_F32: f32 = 16_000.0;
 pub const DOWNSAMPLE_RATE_F32: f32 = 320.0;
 pub const LOGITS_PER_SECOND: f32 = SAMPLE_RATE_F32 / DOWNSAMPLE_RATE_F32;
+// Zipa drops 2 logits on start and end
+pub const EDGE_SKIPPED_LOGITS: usize = 2;
 
 pub fn sample_count_to_duration(count: usize) -> Duration {
     Duration::from_secs_f32(count as f32 / SAMPLE_RATE_F32)
