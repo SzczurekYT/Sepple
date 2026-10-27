@@ -23,7 +23,8 @@ use crate::{
     },
     timestamped_vec::TimestampedVec,
     units::{
-        duration_to_logit_count, duration_to_sample_count, logit_count_to_time, unix_timestamp_now,
+        EDGE_SKIPPED_LOGITS, duration_to_logit_count, duration_to_sample_count,
+        logit_count_to_time, unix_timestamp_now,
     },
 };
 
@@ -47,8 +48,10 @@ impl IpaProcessor {
             recognizer,
             notification,
             window_size: duration_to_sample_count(&config.window_size),
-            cut_left_logits: duration_to_logit_count(config.cut_left),
-            cut_right_logits: duration_to_logit_count(config.cut_right),
+            cut_left_logits: duration_to_logit_count(config.cut_left)
+                .saturating_sub(EDGE_SKIPPED_LOGITS),
+            cut_right_logits: duration_to_logit_count(config.cut_right)
+                .saturating_sub(EDGE_SKIPPED_LOGITS),
         })
     }
 
