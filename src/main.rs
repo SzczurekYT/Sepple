@@ -7,7 +7,6 @@ use std::{
 use clap::{Parser, Subcommand};
 
 use sepple::{
-    debug::audio_logger::AudioLogger,
     dictionary::Dictionary,
     error::SeppleResult,
     ipa_recognizer::IpaRecognizer,
@@ -26,7 +25,6 @@ use sepple::{
         producer::{capture::AudioCapture, memory_audio_source::MemoryAudioSource},
     },
     read_wav_to_f32, save_f32_to_wav, set_debug,
-    units::duration_to_sample_count,
     vad::{self, Vad},
 };
 
@@ -147,10 +145,6 @@ fn run_pipeline(input: Option<Vec<f32>>) -> SeppleResult<()> {
         .then(SlidingWindowChunker::new(
             &sliding_window_config,
             &Duration::from_millis(40),
-        ))
-        .then(AudioLogger::new(
-            Some(duration_to_sample_count(&sliding_window_config.window_size)),
-            "debug",
         ))
         .then(ipa_processor)
         .then(word_detector)
