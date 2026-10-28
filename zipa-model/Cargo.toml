@@ -1,5 +1,5 @@
 [package]
-name = "multipa-model"
+name = "zipa-model"
 version.workspace = true
 edition.workspace = true
 

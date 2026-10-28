@@ -3,8 +3,8 @@ use std::{collections::HashMap, fs, path::Path};
 use burn::{Tensor, tensor::Device};
 
 use burn_store::{BurnpackStore, ModuleSnapshot};
-use multipa_model::MultipaModel;
 use serde_json::Value;
+use zipa_model::ZipaSmallCrCtcNsModel;
 
 use crate::error::{SeppleError, SeppleResult};
 
@@ -13,7 +13,7 @@ const VOCAB_JSON: &str = include_str!("../model/vocab.json");
 
 pub struct IpaRecognizer {
     device: Device,
-    model: MultipaModel,
+    model: ZipaSmallCrCtcNsModel,
     vocab: HashMap<i32, String>,
     padding_token_id: i32,
 }
@@ -36,7 +36,7 @@ impl IpaRecognizer {
     {
         let device = Device::default();
 
-        let mut model = MultipaModel::new(&device);
+        let mut model = ZipaSmallCrCtcNsModel::new(&device);
         let mut store = BurnpackStore::from_file(model_path);
         model
             .load_from(&mut store)
@@ -60,14 +60,15 @@ impl IpaRecognizer {
     /// Takes normalized audio samples, returns vector of non decoded token ids
     pub fn process(&self, input: &[f32]) -> Vec<i32> {
         let input_tensor = samples_to_tensor(input, &self.device);
-        let logits = self.model.forward(input_tensor);
-        let logits_2d = logits.squeeze::<2>();
-        let predicted_ids = logits_2d.argmax(1);
+        // let logits = self.model.forward(input_tensor);
+        // let logits_2d = logits.squeeze::<2>();
+        todo!();
+        // let predicted_ids = logits_2d.argmax(1);
 
-        predicted_ids
-            .to_data()
-            .try_into_vec::<i32>()
-            .expect("Failed to convert tensor to Vec<i32>")
+        // predicted_ids
+        //     .to_data()
+        //     .try_into_vec::<i32>()
+        //     .expect("Failed to convert tensor to Vec<i32>")
     }
 
     pub fn greedy_ctc_decode(&self, ids: &[i32]) -> Vec<i32> {
