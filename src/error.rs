@@ -24,7 +24,7 @@ pub enum SeppleError {
     #[error("The system has no input audio devices. You need a microphone.")]
     NoMicFound,
     #[error("Cannot load the speech recognition model, burnpack error occured\n{0}")]
-    MultipaModelLoad(#[from] BurnpackError),
+    ModelLoad(#[from] BurnpackError),
     #[error("Model setup failed\n{0}")]
     ModelSetup(#[from] ModelSetupError),
 }

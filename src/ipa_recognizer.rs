@@ -1,19 +1,22 @@
 use std::{collections::HashMap, fs, path::Path};
 
-use burn::{Tensor, tensor::Device};
-
+use burn::{prelude::*, tensor::DType};
 use burn_store::{BurnpackStore, ModuleSnapshot};
 use serde_json::Value;
 use zipa_model::ZipaSmallCrCtcNsModel;
 
-use crate::error::{SeppleError, SeppleResult};
+use crate::{
+    error::{SeppleError, SeppleResult},
+    fbank::Fbank,
+};
 
-const PAD_TOKEN_ID: i32 = 310;
+const PAD_TOKEN_ID: i32 = 0;
 const VOCAB_JSON: &str = include_str!("../model/vocab.json");
 
 pub struct IpaRecognizer {
     device: Device,
     model: ZipaSmallCrCtcNsModel,
+    fbank: Fbank,
     vocab: HashMap<i32, String>,
     padding_token_id: i32,
 }
@@ -40,35 +43,56 @@ impl IpaRecognizer {
         let mut store = BurnpackStore::from_file(model_path);
         model
             .load_from(&mut store)
-            .map_err(SeppleError::MultipaModelLoad)?;
+            .map_err(SeppleError::ModelLoad)?;
+
+        let fbank = Fbank::new(device.clone());
 
         Ok(Self {
             model,
             device,
+            fbank,
             vocab,
             padding_token_id,
         })
     }
 
     pub fn recognize(&self, input: &[f32]) -> String {
-        let normalized = z_score_normalize(input.iter().copied());
-        let result = self.process(&normalized);
-        let result = self.greedy_ctc_decode(&result);
-        self.decode_tokens(&result)
+        let ids = self.process(input);
+        let ids = self.greedy_ctc_decode(&ids);
+        self.decode_tokens(&ids)
     }
 
-    /// Takes normalized audio samples, returns vector of non decoded token ids
+    /// Takes raw 16 kHz mono audio samples, returns the decoded (pre-CTC) token ids.
     pub fn process(&self, input: &[f32]) -> Vec<i32> {
-        let input_tensor = samples_to_tensor(input, &self.device);
-        // let logits = self.model.forward(input_tensor);
-        // let logits_2d = logits.squeeze::<2>();
-        todo!();
-        // let predicted_ids = logits_2d.argmax(1);
+        let (log_probs, valid) = self.forward(input);
 
-        // predicted_ids
-        //     .to_data()
-        //     .try_into_vec::<i32>()
-        //     .expect("Failed to convert tensor to Vec<i32>")
+        log_probs
+            .slice(s![0..valid, ..])
+            .argmax(1)
+            .into_data()
+            .try_into_vec_as::<i32>()
+            .expect("Failed to convert tensor to Vec<i32>")
+    }
+
+    pub fn forward(&self, input: &[f32]) -> (Tensor<2>, usize) {
+        let features = self.fbank.compute(input);
+        let num_frames = features.dims()[0];
+
+        let x = features.unsqueeze_dim::<3>(0);
+        let x_lens = Tensor::<1, Int>::from_data(
+            TensorData::from([num_frames as i64]),
+            (&self.device, DType::I64),
+        );
+
+        let (log_probs, log_probs_len) = self.model.forward(x, x_lens);
+        let log_probs = log_probs.squeeze_dim::<2>(0);
+
+        let valid = log_probs_len
+            .into_data()
+            .try_into_vec_as::<i64>()
+            .expect("model output length to be integers")[0] as usize;
+
+        (log_probs, valid)
     }
 
     pub fn greedy_ctc_decode(&self, ids: &[i32]) -> Vec<i32> {

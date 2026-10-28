@@ -16,7 +16,7 @@ use tokio::{
 use crate::{
     debug_enabled,
     error::SeppleResult,
-    ipa_recognizer::{IpaRecognizer, z_score_normalize},
+    ipa_recognizer::IpaRecognizer,
     pipeline::{
         PipelineConsumer, PipelineProcessor, PipelineProducer,
         processor::sliding_window::SlidingWindowConfig,
@@ -87,8 +87,7 @@ impl PipelineProcessor for IpaProcessor {
         sender: &Sender<Self::Output>,
     ) -> Result<(), SendError<Self::Output>> {
         let mut start_time = value.first().expect("non empty input").1;
-        let sample_iter = value.iter().map(|(sample, _)| *sample);
-        let chunk = z_score_normalize(sample_iter);
+        let chunk: Vec<f32> = value.iter().map(|(sample, _)| *sample).collect();
 
         let recognizer = Arc::clone(&self.recognizer);
         let (notif, next_notif) = self.next_notification();
