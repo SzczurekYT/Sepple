@@ -1,12 +1,13 @@
 use std::{
     iter::{self},
     path::PathBuf,
-    time::{Duration, Instant},
+    time::Instant,
 };
 
 use clap::{Parser, Subcommand};
 
 use sepple::{
+    configs::PreconfiguredPipelineParts,
     dictionary::Dictionary,
     error::SeppleResult,
     ipa_recognizer::IpaRecognizer,
@@ -15,11 +16,7 @@ use sepple::{
         Pipeline,
         consumer::value_printer::ValuePrinter,
         processor::{
-            chunker::AudioChunker,
-            ipa_processor::IpaProcessor,
-            silero_vad_scorer::SileroVadScorer,
-            sliding_window::{SlidingWindowChunker, SlidingWindowConfig},
-            vad_filter::VadFilter,
+            ipa_processor::IpaProcessor, silero_vad_scorer::SileroVadScorer,
             word_detector::WordDetector,
         },
         producer::{capture::AudioCapture, memory_audio_source::MemoryAudioSource},
@@ -116,10 +113,15 @@ fn run_single_silero(input: &[f32]) {
 
 fn run_pipeline(input: Option<Vec<f32>>) -> SeppleResult<()> {
     let load_start = Instant::now();
+    let PreconfiguredPipelineParts {
+        audio_chunker,
+        sliding_window_config,
+        vad_filter,
+        sliding_window_chunker,
+    } = PreconfiguredPipelineParts::default();
     let reporter = model_provider::indicatif_progress_reporter();
     let model_path = model_provider::ensure_downloaded_and_get_path(&reporter)?;
     println!("Loading model");
-    let sliding_window_config = SlidingWindowConfig::default();
     let vad_scorer = SileroVadScorer::init();
     let ipa_processor = IpaProcessor::init(model_path, &sliding_window_config)?;
     let word_detector = WordDetector::init(Dictionary::from_file(DICTIONARY_PATH)?);
@@ -135,13 +137,10 @@ fn run_pipeline(input: Option<Vec<f32>>) -> SeppleResult<()> {
     };
 
     pipeline
-        .then(AudioChunker::new(vad::CHUNK_SIZE))
+        .then(audio_chunker)
         .then(vad_scorer)
-        .then(VadFilter::new(0.35, 0.35, 10))
-        .then(SlidingWindowChunker::new(
-            &sliding_window_config,
-            &Duration::from_millis(40),
-        ))
+        .then(vad_filter)
+        .then(sliding_window_chunker)
         .then(ipa_processor)
         .then(word_detector)
         .build_and_run(ValuePrinter::new());

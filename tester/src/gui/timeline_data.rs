@@ -1,5 +1,7 @@
 use std::{ops::Range, time::Duration};
 
+use sepple::configs::PreconfiguredPipelineParts;
+
 #[derive(Debug, Clone)]
 pub struct SessionConfig {
     pub vad_start_threshold: f32,
@@ -11,12 +13,17 @@ pub struct SessionConfig {
 
 impl Default for SessionConfig {
     fn default() -> Self {
+        let PreconfiguredPipelineParts {
+            sliding_window_config,
+            vad_filter,
+            ..
+        } = PreconfiguredPipelineParts::default();
         Self {
-            vad_start_threshold: 0.35,
-            vad_end_threshold: 0.35,
-            window_size: Duration::from_millis(1000),
-            cut_left: Duration::from_millis(150),
-            cut_right: Duration::from_millis(150),
+            vad_start_threshold: vad_filter.start_talk_threshold,
+            vad_end_threshold: vad_filter.end_talk_threshold,
+            window_size: sliding_window_config.window_size,
+            cut_left: sliding_window_config.cut_left,
+            cut_right: sliding_window_config.cut_right,
         }
     }
 }

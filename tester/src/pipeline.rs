@@ -5,20 +5,16 @@ use std::{
         atomic::{AtomicBool, AtomicUsize},
     },
     thread,
-    time::Duration,
 };
 
 use sepple::{
+    configs::PreconfiguredPipelineParts,
     dictionary::Dictionary,
     model_provider,
     pipeline::{
         Pipeline,
         processor::{
-            chunker::AudioChunker,
-            ipa_processor::IpaProcessor,
-            silero_vad_scorer::SileroVadScorer,
-            sliding_window::{SlidingWindowChunker, SlidingWindowConfig},
-            vad_filter::VadFilter,
+            ipa_processor::IpaProcessor, silero_vad_scorer::SileroVadScorer,
             word_detector::WordDetector,
         },
         producer::{capture::AudioCapture, memory_audio_source::MemoryAudioSource},
@@ -39,8 +35,14 @@ pub fn build(file: Option<PathBuf>) -> Result<Transport, Box<dyn std::error::Err
     let running = Arc::new(AtomicBool::new(true));
     let silence_running = Arc::clone(&running);
 
-    let window_size = Duration::from_millis(1000);
-    let window_size_samples = duration_to_sample_count(&Duration::from_millis(1000));
+    let PreconfiguredPipelineParts {
+        audio_chunker,
+        sliding_window_config,
+        vad_filter,
+        sliding_window_chunker,
+    } = PreconfiguredPipelineParts::default();
+
+    let window_size_samples = duration_to_sample_count(&sliding_window_config.window_size);
     let (raw_tap, raw_rx) = Tap::<TimestampedVec<f32>>::new(dropped.clone(), Some(vad::CHUNK_SIZE));
     let (post_vad_tap, post_vad_rx) = Tap::new(dropped.clone(), None);
     let (chunk_tap, chunk_rx) =
@@ -51,15 +53,9 @@ pub fn build(file: Option<PathBuf>) -> Result<Transport, Box<dyn std::error::Err
     let model_path = model_provider::ensure_downloaded_and_get_path(&reporter)?;
     let dictionary = Dictionary::from_file(DICTIONARY_PATH)?;
 
-    let config = SlidingWindowConfig {
-        window_size,
-        cut_left: Duration::from_millis(150),
-        cut_right: Duration::from_millis(150),
-    };
-    let ipa_processor = IpaProcessor::init(&model_path, &config)?;
+    let ipa_processor = IpaProcessor::init(&model_path, &sliding_window_config)?;
 
-    let (vad_filter, score_rx) =
-        InstrumentedVadFilter::new(VadFilter::new(0.35, 0.35, 10), dropped.clone());
+    let (vad_filter, score_rx) = InstrumentedVadFilter::new(vad_filter, dropped.clone());
     let (word_detector, snapshot_rx) =
         InstrumentedWordDetector::new(WordDetector::init(dictionary), dropped.clone());
 
@@ -76,15 +72,12 @@ pub fn build(file: Option<PathBuf>) -> Result<Transport, Box<dyn std::error::Err
         };
         pipeline
             .then(SilenceGate::new(silence_running))
-            .then(AudioChunker::new(vad::CHUNK_SIZE))
+            .then(audio_chunker)
             .then(raw_tap)
             .then(SileroVadScorer::init())
             .then(vad_filter)
             .then(post_vad_tap)
-            .then(SlidingWindowChunker::new(
-                &config,
-                &Duration::from_millis(40),
-            ))
+            .then(sliding_window_chunker)
             .then(chunk_tap)
             .then(ipa_processor)
             .then(token_tap)

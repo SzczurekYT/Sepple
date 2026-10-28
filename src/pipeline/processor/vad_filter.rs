@@ -8,11 +8,11 @@ use crate::{
 };
 
 pub struct VadFilter {
-    start_talk_threshold: f32,
-    end_talk_threshold: f32,
+    pub start_talk_threshold: f32,
+    pub end_talk_threshold: f32,
     previous: Option<(TimestampedVec<f32>, f32)>,
     context: VecDeque<(TimestampedVec<f32>, f32)>,
-    context_size_chunks: usize,
+    pub context_size_chunks: usize,
     is_talking: bool,
 }
 
@@ -53,6 +53,12 @@ impl VadFilter {
 
     pub fn is_talking(&self) -> bool {
         self.is_talking
+    }
+}
+
+impl Default for VadFilter {
+    fn default() -> Self {
+        Self::new(0.35, 0.35, 10)
     }
 }
 
