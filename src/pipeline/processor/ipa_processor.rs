@@ -48,10 +48,8 @@ impl IpaProcessor {
             recognizer,
             notification,
             window_size: duration_to_sample_count(&config.window_size),
-            cut_left_logits: duration_to_logit_count(config.cut_left)
-                .saturating_sub(EDGE_SKIPPED_LOGITS),
-            cut_right_logits: duration_to_logit_count(config.cut_right)
-                .saturating_sub(EDGE_SKIPPED_LOGITS),
+            cut_left_logits: duration_to_logit_count(config.cut_left) - EDGE_SKIPPED_LOGITS,
+            cut_right_logits: duration_to_logit_count(config.cut_right) - EDGE_SKIPPED_LOGITS,
         })
     }
 
