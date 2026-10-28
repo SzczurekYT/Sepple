@@ -64,18 +64,18 @@ impl PipelineProcessor for SlidingWindowChunker {
         let samples = match value {
             VadValue::Data(samples) => samples,
             VadValue::SpeechEnd => {
-                if !self.buffer.is_empty() {
-                    let buffer = take(&mut self.buffer);
-                    let timestamp = buffer.last().expect("non empty buffer").1;
-                    let padding = (0.0, timestamp);
-                    let data = buffer
-                        .into_iter()
-                        .chain(repeat(padding))
-                        .take(self.window_size)
-                        .collect();
-                    sender.send(data).await?;
-                    self.buffer.clear();
+                if self.buffer.is_empty() {
+                    return Ok(());
                 }
+                let buffer = take(&mut self.buffer);
+                let timestamp = buffer.last().expect("non empty buffer").1;
+                let padding = (0.0, timestamp);
+                let data = buffer
+                    .into_iter()
+                    .chain(repeat(padding))
+                    .take(self.window_size)
+                    .collect();
+                sender.send(data).await?;
                 return Ok(());
             }
         };
@@ -102,4 +102,17 @@ pub struct SlidingWindowConfig {
     pub window_size: Duration,
     pub cut_left: Duration,
     pub cut_right: Duration,
+}
+
+impl Default for SlidingWindowConfig {
+    fn default() -> Self {
+        let context = 1500;
+        let processing_window = 1000;
+        let end_cut = 150;
+        Self {
+            window_size: Duration::from_millis(context + processing_window + end_cut),
+            cut_left: Duration::from_millis(context),
+            cut_right: Duration::from_millis(end_cut),
+        }
+    }
 }

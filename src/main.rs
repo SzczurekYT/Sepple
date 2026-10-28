@@ -119,11 +119,7 @@ fn run_pipeline(input: Option<Vec<f32>>) -> SeppleResult<()> {
     let reporter = model_provider::indicatif_progress_reporter();
     let model_path = model_provider::ensure_downloaded_and_get_path(&reporter)?;
     println!("Loading model");
-    let sliding_window_config = SlidingWindowConfig {
-        window_size: Duration::from_millis(1000),
-        cut_left: Duration::from_millis(150),
-        cut_right: Duration::from_millis(150),
-    };
+    let sliding_window_config = SlidingWindowConfig::default();
     let vad_scorer = SileroVadScorer::init();
     let ipa_processor = IpaProcessor::init(model_path, &sliding_window_config)?;
     let word_detector = WordDetector::init(Dictionary::from_file(DICTIONARY_PATH)?);
