@@ -1,6 +1,7 @@
 pub mod debug;
 pub mod dictionary;
 pub mod error;
+pub mod fbank;
 pub mod ipa_recognizer;
 pub mod model_provider;
 pub mod pipeline;

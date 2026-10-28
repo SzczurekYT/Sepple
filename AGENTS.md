@@ -13,7 +13,7 @@ cargo run --release -- pipeline -f <path.wav>          # the full pipeline over 
 
 Add `-v` before the subcommand for more logging.
 
-The first run downloads a 1.26 GB model from HuggingFace into the user cache
+The first run downloads a 258 MB model from HuggingFace into the user cache
 directory (`model_provider::get_model_path`). There is no flag to skip or
 relocate it.
 
@@ -22,18 +22,37 @@ all three and panics otherwise, and hound reads WAV only.
 
 ## Architecture
 
-The workspace has three crates: `sepple` (library + CLI), `multipa-model`
+The workspace has three crates: `sepple` (library + CLI), `zipa-model`
 (generated model code), and `trainer` (dataset building tools). Audio flows
 from a source through a chain of pipeline processors into word detection.
 
-### multipa-model
+### zipa-model
 
-The multipa speech-to-IPA model itself. `multipa-model/src/multipa_sim.rs` is
-generated from `model/multipa_sim.onnx` by burn-onnx and checked in; never
-edit it by hand. `src/ipa_recognizer.rs` wraps it: it loads the 1.26 GB
-burnpack weights, normalizes audio with a z-score, and greedy-CTC decodes
-using the token vocabulary from `model/vocab.json`, which is compiled in with
-`include_str!`.
+The Zipa speech-to-IPA model itself. `zipa-model/src/zipa_small_crctc_ns.rs` is
+generated from `model/zipa-small-crctc-ns.onnx` by burn-onnx and checked in.
+`src/ipa_recognizer.rs` wraps it: it loads the 258 MB burnpack weights, is fed
+log-mel filterbank features, and greedy-CTC decodes using the 127-symbol
+vocabulary from `model/vocab.json`, which is compiled in with `include_str!`.
+The `▁` word-boundary symbol is set to nothing in vocab, so the output is one
+continuous IPA string.
+
+After regenerating with `onnx2burn`, running
+`.venv/bin/python python/fix_generated_expand.py <generated.rs>` is required:
+burn-onnx 0.22.0 lowers ONNX `Expand` to `Tensor::expand`, which rejects the
+zero-length target dimension that Zipa's pad-to-even branch produces for audio
+whose subsampled length is already even. The script rewrites those blocks to
+build an empty tensor instead.
+
+### fbank
+
+`src/fbank.rs` reproduces the Kaldi log-mel filterbank the model was trained
+with (lhotse's `Fbank(num_filters=80, dither=0.0, snip_edges=False)`), which is
+a port of torchaudio's Kaldi compliance module. Frames are 400 samples with a
+160-sample hop, center-aligned with reflection padding; each frame gets DC
+removal, pre-emphasis (0.97) and a Povey window, is zero-padded to 512, and is
+turned into 80 log-mel bins. The time-domain steps run in plain `f32`; the FFT
+comes from `burn-signal`'s `rfft`, and the power spectrum, mel projection and
+log run as burn tensors.
 
 ### Pipeline processors
 
@@ -114,3 +133,6 @@ transcription from those sample timestamps plus the logit cut, and
 ## Tests
 
 `src/dictionary.rs` has a bunch of tests for checking how it behaves on different inputs. Run after modifying the file.
+
+`src/fbank.rs` has unit tests for the frame count, the Povey window, the mel
+filterbank shape and the log floor.

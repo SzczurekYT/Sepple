@@ -16,7 +16,7 @@ version = "0.1.0"
 edition = "2024"
 
 [workspace.dependencies]
-burn = { version = "~0.22.0", features = ["flex"] }
+burn = { version = "~0.22.0", features = ["flex", "signal"] }
 burn-store = "~0.22.0"
 clap = { version = "4.6.1", features = ["derive"] }
 indicatif = "0.18.6"

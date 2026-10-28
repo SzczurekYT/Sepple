@@ -27,5 +27,5 @@ cargo run -r -p trainer extract-audio-tar wiktionary-audios.tar filenames.csv au
 # requiring ffmpeg on PATH. Checkpoints every 10 generated rows; on interruption
 # rerun with the output file as input to resume where it left off (rows already
 # having both values are skipped).
-cargo run -r -p trainer add-inferred-ipa filenames_found.csv data.csv audio_data ../model/multipa_sim.bpk
+cargo run -r -p trainer add-inferred-ipa filenames_found.csv data.csv audio_data ../model/zipa-small-crctc-ns.bpk
 ```
