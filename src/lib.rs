@@ -8,6 +8,7 @@ pub mod pipeline;
 pub mod timestamped_vec;
 pub mod units;
 pub mod vad;
+pub mod configs;
 
 use std::{
     path::Path,
