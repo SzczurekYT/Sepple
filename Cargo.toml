@@ -9,7 +9,7 @@ default-run = "sepple"
 wgpu = ["burn/wgpu"]
 
 [workspace]
-members = ["multipa-model", "tester", "trainer"]
+members = ["zipa-model", "tester", "trainer"]
 
 [workspace.package]
 version = "0.1.0"
@@ -28,7 +28,7 @@ tokio = { version = "1.53.1", features = ["rt", "macros", "time", "sync"] }
 [dependencies]
 burn.workspace = true
 burn-store.workspace = true
-multipa-model = { path = "./multipa-model" }
+zipa-model = { path = "./zipa-model" }
 
 hound = "3.5.1"
 serde_json.workspace = true
