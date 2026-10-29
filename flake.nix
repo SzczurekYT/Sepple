@@ -29,6 +29,7 @@
             pkg-config
             portaudio
             alsa-lib
+            pipewire
           ];
 
           env = lib.optionalAttrs pkgs.stdenv.isLinux {

@@ -133,7 +133,7 @@ fn run_pipeline(input: Option<Vec<f32>>) -> SeppleResult<()> {
     let pipeline = if let Some(input) = input {
         Pipeline::new(MemoryAudioSource::new(input, vad::CHUNK_SIZE))
     } else {
-        Pipeline::new(AudioCapture::new()?)
+        Pipeline::new(AudioCapture::new(None)?)
     };
 
     pipeline
