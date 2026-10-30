@@ -98,6 +98,14 @@ impl AudioCaptureController {
         }
     }
 
+    pub fn capture_device(&self) -> Option<CaptureDevice> {
+        let device = self.device.as_ref()?;
+        let desc = device.description().ok()?;
+        let name = desc.name().to_owned();
+        let id = device.id().ok()?.to_string();
+        Some(CaptureDevice { name, id })
+    }
+
     pub(crate) fn run(&mut self, sender: Sender<TimestampedVec<f32>>) {
         self.sender = Some(sender.clone());
         let result = self.run_stream(sender);
