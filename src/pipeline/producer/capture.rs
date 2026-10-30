@@ -172,13 +172,11 @@ impl AudioCaptureController {
     where
         T: Into<Option<String>>,
     {
-        let preferred = self.get_device_by_id(preferred_id.into());
-        if preferred.is_some() {
-            self.device = preferred;
-            return Ok(());
-        }
-        self.device = self.host.default_input_device();
-        if self.device.is_some() {
+        let device = self
+            .get_device_by_id(preferred_id.into())
+            .or_else(|| self.host.default_input_device());
+        if device.is_some() {
+            self.device = device;
             self.rerun();
             Ok(())
         } else {
