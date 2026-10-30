@@ -100,10 +100,13 @@ impl AudioCaptureController {
 
     pub(crate) fn run(&mut self, sender: Sender<TimestampedVec<f32>>) {
         self.sender = Some(sender.clone());
-        self.run_stream(sender);
+        let result = self.run_stream(sender);
+        if let Err(err) = result {
+            eprintln!("[Sepple] Failed to start mic capture stream!\n{err}");
+        }
     }
 
-    pub fn rerun(&mut self) {
+    pub fn rerun(&mut self) -> SeppleResult<()> {
         if let Some(stream) = self.stream.take() {
             let _ = stream.pause();
             // Let's be sure, this might release something before
@@ -112,12 +115,12 @@ impl AudioCaptureController {
         };
 
         let Some(sender) = &self.sender else {
-            return;
+            return Ok(());
         };
-        self.run_stream(sender.clone());
+        self.run_stream(sender.clone())
     }
 
-    fn run_stream(&mut self, sender: Sender<TimestampedVec<f32>>) {
+    fn run_stream(&mut self, sender: Sender<TimestampedVec<f32>>) -> SeppleResult<()> {
         let config = cpal::StreamConfig {
             channels: 1,
             sample_rate: SAMPLE_RATE_U32,
@@ -125,7 +128,7 @@ impl AudioCaptureController {
         };
 
         let Some(ref device) = self.device else {
-            return;
+            return Ok(());
         };
 
         let exit_notification2 = Arc::clone(&self.exit_notification);
@@ -160,10 +163,12 @@ impl AudioCaptureController {
                 },
                 None,
             )
-            .expect("Failed to build input stream");
+            .map_err(SeppleError::MicCaptureSetupError)?;
 
-        stream.play().expect("Failed to start audio stream");
+        stream.play().map_err(SeppleError::MicCaptureStartError)?;
         self.stream = Some(stream);
+
+        Ok(())
     }
 
     /// Sets microphone to the provided id if available, or use a default device
@@ -172,13 +177,21 @@ impl AudioCaptureController {
     where
         T: Into<Option<String>>,
     {
+        let current_device = self.device.take();
         let device = self
             .get_device_by_id(preferred_id.into())
             .or_else(|| self.host.default_input_device());
         if device.is_some() {
             self.device = device;
-            self.rerun();
-            Ok(())
+            let rerun_result = self.rerun();
+            if rerun_result.is_ok() {
+                return Ok(());
+            }
+            if current_device.is_none() {
+                return rerun_result;
+            };
+            self.device = current_device;
+            self.rerun()
         } else {
             Err(SeppleError::NoMicFound)
         }
