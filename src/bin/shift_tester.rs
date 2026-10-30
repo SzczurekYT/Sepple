@@ -10,7 +10,8 @@ async fn main() {
     let input = read_wav_to_f32(file);
 
     println!("Loading model");
-    let recognizer = Arc::new(IpaRecognizer::init_default("./model/zipa-small-crctc-ns.bpk").unwrap());
+    let recognizer =
+        Arc::new(IpaRecognizer::init_default("./model/zipa-small-crctc-ns.bpk").unwrap());
     println!("Load done");
 
     // Limit the number of work done at the same time to prevent consuming all RAM
