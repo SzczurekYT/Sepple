@@ -54,7 +54,7 @@ bunsen = { version = "0.41.0", default-features = false, features = ["store"] }
 thiserror = "2.0.21"
 directories = "6.0.0"
 indicatif = { optional = true, workspace = true }
-reqwest = { version = "0.13.5", features = ["blocking"] }
+ureq = { version = "3.4.2", default-features = false, features = ["rustls"] }
 tempfile = "3.27.0"
 
 [package.metadata.cargo-machete.renamed]

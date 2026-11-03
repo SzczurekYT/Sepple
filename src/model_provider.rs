@@ -8,9 +8,9 @@ use std::{
 use directories::ProjectDirs;
 #[cfg(feature = "extra")]
 use indicatif::{ProgressBar, ProgressStyle};
-use reqwest::blocking::Client;
 use tempfile::Builder;
 use thiserror::Error;
+use ureq::Agent;
 
 use crate::error::SeppleResult;
 
@@ -18,12 +18,8 @@ use crate::error::SeppleResult;
 pub enum ModelSetupError {
     #[error("Failed to create temporary directory for model download.\n{0}")]
     TmpdirCreation(io::Error),
-    #[error("Failed to build HTTP client for model download.\n{0}")]
-    HttpClientBuild(reqwest::Error),
     #[error("Failed to send model download request.\n{0}")]
-    DownloadSend(reqwest::Error),
-    #[error("Failed to receive model download response.\n{0}")]
-    DownloadReceive(reqwest::Error),
+    DownloadRequest(ureq::Error),
     #[error("Failed to read downloaded model data.\n{0}")]
     DownloadRead(io::Error),
     #[error("Failed to create file for saving model.\n{0}")]
@@ -101,19 +97,18 @@ fn download_and_save_model(
     // It it fails it probably doesn't exist
     let _ = fs::remove_file(&path);
 
-    let client = Client::builder()
-        .timeout(None)
-        .connect_timeout(Duration::from_secs(15))
+    let agent: Agent = Agent::config_builder()
+        .timeout_connect(Some(Duration::from_secs(15)))
         .build()
-        .map_err(ModelSetupError::HttpClientBuild)?;
-    let response = client
+        .into();
+    let response = agent
         .get(model.url)
-        .send()
-        .map_err(ModelSetupError::DownloadSend)?;
+        .call()
+        .map_err(ModelSetupError::DownloadRequest)?;
 
-    let total_size = response.content_length();
-
-    let mut response = response;
+    let (_, body) = response.into_parts();
+    let total_size = body.content_length();
+    let mut response = body.into_reader();
     let mut dest = File::create(&path).map_err(ModelSetupError::FileCreate)?;
 
     let mut downloaded: u64 = 0;
