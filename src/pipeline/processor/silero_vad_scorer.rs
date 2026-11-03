@@ -1,3 +1,5 @@
+use std::path::Path;
+
 use tokio::sync::mpsc::{Sender, error::SendError};
 
 use crate::{
@@ -11,8 +13,13 @@ pub struct SileroVadScorer {
 }
 
 impl SileroVadScorer {
-    pub fn init() -> Self {
-        Self { vad: Vad::init() }
+    pub fn init<P>(model_path: P) -> Self
+    where
+        P: AsRef<Path>,
+    {
+        Self {
+            vad: Vad::init(model_path),
+        }
     }
 }
 

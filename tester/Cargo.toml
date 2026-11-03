@@ -8,7 +8,7 @@ wgpu = ["sepple/wgpu"]
 
 [dependencies]
 clap.workspace = true
-sepple = { path = "../" }
+sepple = { path = "../", features = ["extra"] }
 eframe = "0.36.2"
 egui_plot = "0.37.0"
 rfd = "0.17.2"

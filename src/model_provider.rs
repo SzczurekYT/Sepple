@@ -6,6 +6,7 @@ use std::{
 };
 
 use directories::ProjectDirs;
+#[cfg(feature = "extra")]
 use indicatif::{ProgressBar, ProgressStyle};
 use reqwest::blocking::Client;
 use tempfile::Builder;
@@ -35,41 +36,58 @@ pub enum ModelSetupError {
     MoveToDestination(io::Error),
 }
 
-const MODEL_URL: &str = "https://huggingface.co/SzczurekYT/zipa-small-crctc-ns-700k-bpk/resolve/main/zipa-small-crctc-ns.bpk";
-const MODEL_FILE_NAME: &str = "zipa-small-crctc-ns.bpk";
-const MODEL_SIZE_BYTES: u64 = 258760700;
 const MEGABYTE: usize = 1024 * 1024;
 
+pub struct ModelDownloadMeta<'a> {
+    url: &'a str,
+    file_name: &'a str,
+    size_bytes: u64,
+}
+
+pub static ZIPA_MODEL_META: ModelDownloadMeta<'_> = ModelDownloadMeta {
+    url: "https://huggingface.co/SzczurekYT/zipa-small-crctc-ns-700k-bpk/resolve/main/zipa-small-crctc-ns.bpk",
+    file_name: "zipa-small-crctc-ns.bpk",
+    size_bytes: 258760700,
+};
+
+pub static SILERO_MODEL_META: ModelDownloadMeta<'_> = ModelDownloadMeta {
+    url: "https://huggingface.co/SzczurekYT/silero-vad-ifless-bpk/resolve/main/silero_vad_ifless.bpk",
+    file_name: "silero_vad_ifless.bpk",
+    size_bytes: 2184964,
+};
+
 pub fn ensure_downloaded_and_get_path(
+    model: &ModelDownloadMeta<'_>,
     on_progress: &dyn Fn(u64, Option<u64>),
 ) -> SeppleResult<PathBuf> {
-    let path = get_model_path();
+    let path = get_model_path(model);
 
     if fs::exists(&path).unwrap_or(false) {
         return Ok(path);
     }
 
     let model_is_ok = fs::metadata(&path)
-        .map(|metadata| metadata.len() == MODEL_SIZE_BYTES)
+        .map(|metadata| metadata.len() == model.size_bytes)
         .unwrap_or(false);
 
     if model_is_ok {
         return Ok(path);
     }
 
-    download_and_save_model(&path, on_progress)?;
+    download_and_save_model(model, &path, on_progress)?;
 
     Ok(path)
 }
 
-pub fn get_model_path() -> PathBuf {
+pub fn get_model_path(model: &ModelDownloadMeta<'_>) -> PathBuf {
     let base_dir = ProjectDirs::from("yt.szczurek", "", "Sepple")
         .expect("your system is broken, unable to locate home directory ");
 
-    base_dir.cache_dir().to_path_buf().join(MODEL_FILE_NAME)
+    base_dir.cache_dir().to_path_buf().join(model.file_name)
 }
 
 fn download_and_save_model(
+    model: &ModelDownloadMeta<'_>,
     save_path: &Path,
     on_progress: &dyn Fn(u64, Option<u64>),
 ) -> Result<(), ModelSetupError> {
@@ -78,7 +96,7 @@ fn download_and_save_model(
         .tempdir()
         .map_err(ModelSetupError::TmpdirCreation)?;
 
-    let path = tmp_dir.path().join(MODEL_FILE_NAME);
+    let path = tmp_dir.path().join(model.file_name);
 
     // It it fails it probably doesn't exist
     let _ = fs::remove_file(&path);
@@ -89,7 +107,7 @@ fn download_and_save_model(
         .build()
         .map_err(ModelSetupError::HttpClientBuild)?;
     let response = client
-        .get(MODEL_URL)
+        .get(model.url)
         .send()
         .map_err(ModelSetupError::DownloadSend)?;
 
@@ -122,6 +140,7 @@ fn download_and_save_model(
     Ok(())
 }
 
+#[cfg(feature = "extra")]
 pub fn indicatif_progress_reporter() -> impl Fn(u64, Option<u64>) {
     let pb = ProgressBar::new(0);
     pb.set_style(

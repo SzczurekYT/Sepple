@@ -10,7 +10,7 @@ use std::{
 use sepple::{
     configs::PreconfiguredPipelineParts,
     dictionary::Dictionary,
-    model_provider,
+    model_provider::{self, SILERO_MODEL_META, ZIPA_MODEL_META},
     pipeline::{
         Pipeline,
         processor::{
@@ -49,11 +49,15 @@ pub fn build(file: Option<PathBuf>) -> Result<Transport, Box<dyn std::error::Err
         Tap::<TimestampedVec<f32>>::new(dropped.clone(), Some(window_size_samples));
     let (token_tap, token_rx) = Tap::new(dropped.clone(), None);
 
-    let reporter = model_provider::indicatif_progress_reporter();
-    let model_path = model_provider::ensure_downloaded_and_get_path(&reporter)?;
+    let zipa_reporter = model_provider::indicatif_progress_reporter();
+    let zipa_path =
+        model_provider::ensure_downloaded_and_get_path(&ZIPA_MODEL_META, &zipa_reporter)?;
+    let vad_reporter = model_provider::indicatif_progress_reporter();
+    let vad_path =
+        model_provider::ensure_downloaded_and_get_path(&SILERO_MODEL_META, &vad_reporter)?;
     let dictionary = Dictionary::from_file(DICTIONARY_PATH)?;
 
-    let ipa_processor = IpaProcessor::init(&model_path, &sliding_window_config)?;
+    let ipa_processor = IpaProcessor::init(&zipa_path, &sliding_window_config)?;
 
     let (vad_filter, score_rx) = InstrumentedVadFilter::new(vad_filter, dropped.clone());
     let (word_detector, snapshot_rx) =
@@ -74,7 +78,7 @@ pub fn build(file: Option<PathBuf>) -> Result<Transport, Box<dyn std::error::Err
             .then(SilenceGate::new(silence_running))
             .then(audio_chunker)
             .then(raw_tap)
-            .then(SileroVadScorer::init())
+            .then(SileroVadScorer::init(vad_path))
             .then(vad_filter)
             .then(post_vad_tap)
             .then(sliding_window_chunker)

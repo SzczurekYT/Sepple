@@ -11,7 +11,7 @@ use sepple::{
     dictionary::Dictionary,
     error::SeppleResult,
     ipa_recognizer::IpaRecognizer,
-    model_provider,
+    model_provider::{self, SILERO_MODEL_META, ZIPA_MODEL_META},
     pipeline::{
         Pipeline,
         consumer::value_printer::ValuePrinter,
@@ -67,8 +67,7 @@ fn main() {
             if !silero {
                 run_single(input)
             } else {
-                run_single_silero(input);
-                Ok(())
+                run_single_silero(input)
             }
         }
         Command::Pipeline { file } => run_pipeline(file.map(read_wav_to_f32)),
@@ -81,7 +80,7 @@ fn main() {
 
 fn run_single(input: &[f32]) -> SeppleResult<()> {
     let reporter = model_provider::indicatif_progress_reporter();
-    let model_path = model_provider::ensure_downloaded_and_get_path(&reporter)?;
+    let model_path = model_provider::ensure_downloaded_and_get_path(&ZIPA_MODEL_META, &reporter)?;
     println!("Loading model");
     let recognizer = IpaRecognizer::init_default(model_path)?;
     println!("Load done");
@@ -97,9 +96,11 @@ fn run_single(input: &[f32]) -> SeppleResult<()> {
     Ok(())
 }
 
-fn run_single_silero(input: &[f32]) {
+fn run_single_silero(input: &[f32]) -> SeppleResult<()> {
     println!("Loading model");
-    let mut vad = Vad::init();
+    let reporter = model_provider::indicatif_progress_reporter();
+    let vad_path = model_provider::ensure_downloaded_and_get_path(&SILERO_MODEL_META, &reporter)?;
+    let mut vad = Vad::init(vad_path);
     println!("Load done");
     let result = vad.process_audio(input);
 
@@ -109,6 +110,7 @@ fn run_single_silero(input: &[f32]) {
         .flat_map(|prob| iter::repeat_n(*prob, vad::CHUNK_SIZE))
         .collect();
     save_f32_to_wav(&audio, "speech_probabilities.wav");
+    Ok(())
 }
 
 fn run_pipeline(input: Option<Vec<f32>>) -> SeppleResult<()> {
@@ -119,11 +121,15 @@ fn run_pipeline(input: Option<Vec<f32>>) -> SeppleResult<()> {
         vad_filter,
         sliding_window_chunker,
     } = PreconfiguredPipelineParts::default();
-    let reporter = model_provider::indicatif_progress_reporter();
-    let model_path = model_provider::ensure_downloaded_and_get_path(&reporter)?;
+    let zipa_reporter = model_provider::indicatif_progress_reporter();
+    let zipa_path =
+        model_provider::ensure_downloaded_and_get_path(&ZIPA_MODEL_META, &zipa_reporter)?;
+    let vad_reporter = model_provider::indicatif_progress_reporter();
+    let vad_path =
+        model_provider::ensure_downloaded_and_get_path(&SILERO_MODEL_META, &vad_reporter)?;
     println!("Loading model");
-    let vad_scorer = SileroVadScorer::init();
-    let ipa_processor = IpaProcessor::init(model_path, &sliding_window_config)?;
+    let vad_scorer = SileroVadScorer::init(vad_path);
+    let ipa_processor = IpaProcessor::init(zipa_path, &sliding_window_config)?;
     let word_detector = WordDetector::init(Dictionary::from_file(DICTIONARY_PATH)?);
     println!(
         "Load done (took: {:.2?}), transcribing:",

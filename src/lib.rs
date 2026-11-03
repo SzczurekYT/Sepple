@@ -10,17 +10,17 @@ pub mod timestamped_vec;
 pub mod units;
 pub mod vad;
 
-use std::{
-    path::Path,
-    sync::atomic::{AtomicU8, Ordering},
-};
-
-use hound::{WavReader, WavWriter};
-
+#[cfg(feature = "extra")]
 use crate::units::SAMPLE_RATE_U32;
+#[cfg(feature = "extra")]
+use hound::{WavReader, WavWriter};
+#[cfg(feature = "extra")]
+use std::path::Path;
+use std::sync::atomic::{AtomicU8, Ordering};
 
 pub(crate) static DEBUG: AtomicU8 = AtomicU8::new(0);
 
+#[cfg(feature = "extra")]
 pub fn read_wav_to_f32<P: AsRef<Path>>(path: P) -> Vec<f32> {
     let mut reader = WavReader::open(path).expect("Failed to open WAV file");
     let spec = reader.spec();
@@ -38,6 +38,7 @@ pub fn read_wav_to_f32<P: AsRef<Path>>(path: P) -> Vec<f32> {
         .collect()
 }
 
+#[cfg(feature = "extra")]
 pub fn save_f32_to_wav<P: AsRef<Path>>(samples: &[f32], path: P) {
     let spec = hound::WavSpec {
         channels: 1,

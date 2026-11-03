@@ -1,9 +1,9 @@
-use bunsen::kits::speech::silero_vad::{
-    SileroVad, SileroVadCollection, SileroVadContext, pretrained::bundled,
-};
+use std::path::Path;
+
+use bunsen::kits::speech::silero_vad::{SileroVad, SileroVadContext};
 use burn::{Tensor, tensor::Device};
 
-use crate::{ipa_recognizer::samples_to_tensor, units::SAMPLE_RATE_USIZE};
+use crate::ipa_recognizer::samples_to_tensor;
 
 /// For 16khz audio silero works on chunks of 512
 pub const CHUNK_SIZE: usize = 512;
@@ -15,19 +15,14 @@ pub struct Vad {
 }
 
 impl Vad {
-    pub fn init() -> Self {
+    pub fn init<P>(model_path: P) -> Self
+    where
+        P: AsRef<Path>,
+    {
         let device = Device::default();
 
-        let vad = SileroVadCollection::load_from_burnpack_bytes(
-            bundled::burnpack_as_burn_bytes(),
-            &device,
-        )
-        .expect("Failed to load silero vad")
-        .branches
-        .into_iter()
-        .find(|(sample_rate, _)| *sample_rate == SAMPLE_RATE_USIZE)
-        .expect("SileroVad does not support selected sample rate")
-        .1;
+        let vad = SileroVad::load_16khz_from_burnpack_file(model_path, &device)
+            .expect("Failed to load silero vad");
 
         let context = vad.init_context(1, 64, &device);
 
