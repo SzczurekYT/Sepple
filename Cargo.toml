@@ -54,8 +54,12 @@ bunsen = { version = "0.41.0", default-features = false, features = ["store"] }
 thiserror = "2.0.21"
 directories = "6.0.0"
 indicatif = { optional = true, workspace = true }
-ureq = { version = "3.4.2", default-features = false, features = ["rustls"] }
+ureq = { version = "3.5.1", default-features = false, features = [
+    "rustls-no-provider",
+    "rustls-webpki-roots",
+] }
 tempfile = "3.27.0"
+rustls = { version = "0.23.46", features = ["aws-lc-rs"] }
 
 [package.metadata.cargo-machete.renamed]
 phonetics-rs = "phonetics"

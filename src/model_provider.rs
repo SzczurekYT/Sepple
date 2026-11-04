@@ -8,6 +8,7 @@ use std::{
 use directories::ProjectDirs;
 #[cfg(feature = "extra")]
 use indicatif::{ProgressBar, ProgressStyle};
+use rustls::crypto::{self, CryptoProvider};
 use tempfile::Builder;
 use thiserror::Error;
 use ureq::Agent;
@@ -96,6 +97,10 @@ fn download_and_save_model(
 
     // It it fails it probably doesn't exist
     let _ = fs::remove_file(&path);
+
+    if CryptoProvider::get_default().is_none() {
+        let _ = crypto::aws_lc_rs::default_provider().install_default();
+    }
 
     let agent: Agent = Agent::config_builder()
         .timeout_connect(Some(Duration::from_secs(15)))
