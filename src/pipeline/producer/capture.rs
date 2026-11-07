@@ -19,13 +19,25 @@ pub struct AudioCapture {
 }
 
 impl AudioCapture {
-    pub fn new(preferred_device: Option<String>) -> SeppleResult<Self> {
-        let mut controller = AudioCaptureController::new();
-        controller.set_microphone(preferred_device)?;
+    pub fn new(preferred_device: Option<String>) -> Self {
+        Self::from_controller(AudioCaptureController::with_device(preferred_device))
+    }
 
-        Ok(Self {
+    pub fn with_error_handler(
+        preferred_device: Option<String>,
+        error_handler: impl Fn(SeppleError) + Send + Sync + 'static,
+    ) -> Self {
+        let controller =
+            AudioCaptureController::with_device_and_handler(preferred_device, error_handler);
+        Self {
             controller: Arc::new(Mutex::new(controller)),
-        })
+        }
+    }
+
+    fn from_controller(controller: AudioCaptureController) -> Self {
+        Self {
+            controller: Arc::new(Mutex::new(controller)),
+        }
     }
 
     pub fn controller(&self) -> Arc<Mutex<AudioCaptureController>> {
@@ -49,7 +61,9 @@ impl PipelineSource for AudioCapture {
     async fn run(&mut self, sender: Sender<Self::Output>) {
         // Written like this so guard is dropped before await
         let exit_notification = {
-            let mut ctrl = self.controller.lock().unwrap();
+            let Ok(mut ctrl) = self.controller.lock() else {
+                return;
+            };
             ctrl.run(sender);
             Arc::clone(&ctrl.exit_notification)
         };
@@ -89,16 +103,30 @@ pub struct AudioCaptureController {
     wanted_device_id: Option<String>,
     recorder: Option<Recorder<HandySink>>,
     sender: Option<Sender<TimestampedVec<f32>>>,
+    error_handler: Option<Arc<dyn Fn(SeppleError) + Send + Sync + 'static>>,
     pub exit_notification: Arc<Notify>,
 }
 
 impl AudioCaptureController {
     pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn with_device(device: Option<String>) -> Self {
         Self {
-            wanted_device_id: None,
-            recorder: None,
-            sender: None,
-            exit_notification: Arc::new(Notify::new()),
+            wanted_device_id: device,
+            ..Default::default()
+        }
+    }
+
+    pub fn with_device_and_handler(
+        device: Option<String>,
+        error_handler: impl Fn(SeppleError) + Send + Sync + 'static,
+    ) -> Self {
+        Self {
+            wanted_device_id: device,
+            error_handler: Some(Arc::new(error_handler)),
+            ..Default::default()
         }
     }
 
@@ -111,9 +139,16 @@ impl AudioCaptureController {
     pub(crate) fn run(&mut self, sender: Sender<TimestampedVec<f32>>) {
         self.sender = Some(sender.clone());
         let result = self.run_stream(sender);
-        if let Err(err) = result {
+
+        let Err(err) = result else {
+            return;
+        };
+
+        let Some(err_handler) = &self.error_handler else {
             eprintln!("[Sepple] Failed to start mic capture stream!\n{err}");
-        }
+            return;
+        };
+        (err_handler)(err)
     }
 
     pub fn rerun(&mut self) -> SeppleResult<()> {
@@ -136,8 +171,14 @@ impl AudioCaptureController {
             ..Default::default()
         };
 
+        let err_handler = self.error_handler.as_ref().cloned();
+
         let recorder = Recorder::open_with_failure_handler(config, move |err| {
-            eprintln!("Audio stream error: {}", err);
+            let Some(err_handler) = &err_handler else {
+                eprintln!("Audio stream error: {}", err);
+                return;
+            };
+            (err_handler)(SeppleError::MicCaptureError(err))
         })
         .map_err(SeppleError::MicCaptureSetupError)?;
 
@@ -182,14 +223,14 @@ impl AudioCaptureController {
 
         device_map
             .into_values()
-            .map(|devices| {
+            .filter_map(|devices| {
                 devices
                     .iter()
                     .find(|dev| dev.is_default || dev.id.to_lowercase().contains("default"))
                     .or_else(|| devices.iter().find(|dev| dev.id.contains("plughw")))
                     .or_else(|| devices.iter().find(|dev| dev.id.contains("front")))
-                    .unwrap_or_else(|| devices.first().expect("at least one variant"))
-                    .clone()
+                    .or_else(|| devices.first())
+                    .cloned()
             })
             .map(CaptureDevice::from)
             .collect()
@@ -215,7 +256,13 @@ impl AudioCaptureController {
 
 impl Default for AudioCaptureController {
     fn default() -> Self {
-        Self::new()
+        Self {
+            wanted_device_id: None,
+            recorder: None,
+            sender: None,
+            error_handler: None,
+            exit_notification: Arc::new(Notify::new()),
+        }
     }
 }
 

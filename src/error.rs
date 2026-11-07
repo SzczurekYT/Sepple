@@ -28,6 +28,8 @@ pub enum SeppleError {
     MicCaptureSetupError(RecorderError),
     #[error("Failed to start microphone capture\n{0}")]
     MicCaptureStartError(RecorderError),
+    #[error("Error occured during microphone capture\n{0}")]
+    MicCaptureError(RecorderError),
     #[error("Cannot load the speech recognition model, burnpack error occured\n{0}")]
     ModelLoad(#[from] BurnpackError),
     #[error("Model setup failed\n{0}")]

@@ -72,7 +72,7 @@ pub fn build(file: Option<PathBuf>) -> Result<Transport, Box<dyn std::error::Err
                 vad::CHUNK_SIZE,
             ))
         } else {
-            Pipeline::new(AudioCapture::new(None).expect("audio capture device available"))
+            Pipeline::new(AudioCapture::new(None))
         };
         pipeline
             .then(SilenceGate::new(silence_running))
