@@ -7,7 +7,7 @@ use handy_recorder::{Channels, InputDevice, Recorder, RecorderConfig, Sink, list
 use tokio::sync::{Notify, mpsc::Sender};
 
 use crate::{
-    error::{SeppleError, SeppleResult},
+    error::{SeppleAudioError, SeppleAudioErrorKind},
     pipeline::{PipelineProducer, PipelineSource},
     timestamped_vec::{self, TimestampedVec},
     units::{SAMPLE_RATE_U32, sample_count_to_duration, unix_timestamp_now},
@@ -25,7 +25,7 @@ impl AudioCapture {
 
     pub fn with_error_handler(
         preferred_device: Option<String>,
-        error_handler: impl Fn(SeppleError) + Send + Sync + 'static,
+        error_handler: impl Fn(SeppleAudioError) + Send + Sync + 'static,
     ) -> Self {
         let controller =
             AudioCaptureController::with_device_and_handler(preferred_device, error_handler);
@@ -103,7 +103,7 @@ pub struct AudioCaptureController {
     wanted_device_id: Option<String>,
     recorder: Option<Recorder<HandySink>>,
     sender: Option<Sender<TimestampedVec<f32>>>,
-    error_handler: Option<Arc<dyn Fn(SeppleError) + Send + Sync + 'static>>,
+    error_handler: Option<Arc<dyn Fn(SeppleAudioError) + Send + Sync + 'static>>,
     pub exit_notification: Arc<Notify>,
 }
 
@@ -121,7 +121,7 @@ impl AudioCaptureController {
 
     pub fn with_device_and_handler(
         device: Option<String>,
-        error_handler: impl Fn(SeppleError) + Send + Sync + 'static,
+        error_handler: impl Fn(SeppleAudioError) + Send + Sync + 'static,
     ) -> Self {
         Self {
             wanted_device_id: device,
@@ -151,7 +151,7 @@ impl AudioCaptureController {
         (err_handler)(err)
     }
 
-    pub fn rerun(&mut self) -> SeppleResult<()> {
+    pub fn rerun(&mut self) -> Result<(), SeppleAudioError> {
         if let Some(recorder) = self.recorder.take() {
             let _ = recorder.close();
         };
@@ -162,7 +162,7 @@ impl AudioCaptureController {
         self.run_stream(sender.clone())
     }
 
-    fn run_stream(&mut self, sender: Sender<TimestampedVec<f32>>) -> SeppleResult<()> {
+    fn run_stream(&mut self, sender: Sender<TimestampedVec<f32>>) -> Result<(), SeppleAudioError> {
         let config = RecorderConfig {
             channels: Channels::MixToMono,
             sample_rate: Some(SAMPLE_RATE_U32),
@@ -174,21 +174,22 @@ impl AudioCaptureController {
         let err_handler = self.error_handler.as_ref().cloned();
 
         let recorder = Recorder::open_with_failure_handler(config, move |err| {
+            let err = SeppleAudioError::new(err, SeppleAudioErrorKind::MicCaptureError);
             let Some(err_handler) = &err_handler else {
                 eprintln!("Audio stream error: {}", err);
                 return;
             };
-            (err_handler)(SeppleError::MicCaptureError(err))
+            (err_handler)(err)
         })
-        .map_err(SeppleError::MicCaptureSetupError)?;
+        .map_err(|err| SeppleAudioError::new(err, SeppleAudioErrorKind::MicCaptureSetupError))?;
 
         let sink = HandySink {
             exit_notification: Arc::clone(&self.exit_notification),
             sender,
         };
-        recorder
-            .start(sink)
-            .map_err(|err| SeppleError::MicCaptureStartError(err.error))?;
+        recorder.start(sink).map_err(|err| {
+            SeppleAudioError::new(err.error, SeppleAudioErrorKind::MicCaptureStartError)
+        })?;
 
         self.recorder = Some(recorder);
 
@@ -197,7 +198,7 @@ impl AudioCaptureController {
 
     /// Sets microphone to the provided id if available
     /// Restarts the stream if needed
-    pub fn set_microphone<T>(&mut self, preferred_id: T) -> SeppleResult<()>
+    pub fn set_microphone<T>(&mut self, preferred_id: T) -> Result<(), SeppleAudioError>
     where
         T: Into<Option<String>>,
     {
