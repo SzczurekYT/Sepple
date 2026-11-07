@@ -45,7 +45,7 @@ zipa-model = { path = "./zipa-model" }
 
 hound = { version = "3.5.1", optional = true }
 serde_json.workspace = true
-cpal = { version = "0.18.2", features = ["pipewire"] }
+handy-recorder = "0.1.0"
 unicode-segmentation.workspace = true
 phonetics-rs.workspace = true
 clap = { optional = true, workspace = true }
