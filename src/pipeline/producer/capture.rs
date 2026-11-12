@@ -60,12 +60,26 @@ impl PipelineSource for AudioCapture {
 
     async fn run(&mut self, sender: Sender<Self::Output>) {
         // Written like this so guard is dropped before await
-        let exit_notification = {
+        let (exit_notification, result, error_handler) = {
             let Ok(mut ctrl) = self.controller.lock() else {
                 return;
             };
-            ctrl.run(sender);
-            Arc::clone(&ctrl.exit_notification)
+
+            let result = ctrl.run(sender);
+
+            (
+                Arc::clone(&ctrl.exit_notification),
+                result,
+                ctrl.error_handler.clone(),
+            )
+        };
+
+        if let Err(err) = result {
+            if let Some(err_handler) = error_handler {
+                (err_handler)(err, CallbackErrorOrigin::FirstRun);
+            } else {
+                eprintln!("[Sepple] Failed to start mic capture stream!\n{err}");
+            }
         };
 
         exit_notification.notified().await;
@@ -137,19 +151,12 @@ impl AudioCaptureController {
             .map(|rec| rec.info().clone().device.into())
     }
 
-    pub(crate) fn run(&mut self, sender: Sender<TimestampedVec<f32>>) {
+    pub(crate) fn run(
+        &mut self,
+        sender: Sender<TimestampedVec<f32>>,
+    ) -> Result<(), SeppleAudioError> {
         self.sender = Some(sender.clone());
-        let result = self.run_stream(sender);
-
-        let Err(err) = result else {
-            return;
-        };
-
-        let Some(err_handler) = &self.error_handler else {
-            eprintln!("[Sepple] Failed to start mic capture stream!\n{err}");
-            return;
-        };
-        (err_handler)(err, CallbackErrorOrigin::FirstRun)
+        self.run_stream(sender)
     }
 
     pub fn rerun(&mut self) -> Result<(), SeppleAudioError> {
