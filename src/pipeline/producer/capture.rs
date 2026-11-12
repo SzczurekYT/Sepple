@@ -174,7 +174,7 @@ impl AudioCaptureController {
         let config = RecorderConfig {
             channels: Channels::MixToMono,
             sample_rate: Some(SAMPLE_RATE_U32),
-            device: self.wanted_device_id.take(),
+            device: self.wanted_device_id.as_ref().cloned(),
             frames_per_chunk: Some(vad::CHUNK_SIZE),
             ..Default::default()
         };
