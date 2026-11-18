@@ -187,7 +187,13 @@ impl AudioCaptureController {
 
         let err_handler = self.error_handler.clone();
 
+        let state_ref = Arc::clone(&self.state);
+
         let recorder = Recorder::open_with_failure_handler(config, move |err| {
+            state_ref
+                .lock()
+                .unwrap_or_else(|err| err.into_inner())
+                .recorder = None;
             let err = SeppleAudioError::new(err, SeppleAudioErrorKind::MicCaptureError);
             let Some(err_handler) = &err_handler else {
                 eprintln!("Audio stream error: {}", err);
