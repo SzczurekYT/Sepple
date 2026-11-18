@@ -1,6 +1,6 @@
 use std::{
     collections::HashMap,
-    sync::{Arc, Mutex},
+    sync::{Arc, Mutex, MutexGuard},
 };
 
 use handy_recorder::{Channels, InputDevice, Recorder, RecorderConfig, Sink, list_input_devices};
@@ -15,7 +15,7 @@ use crate::{
 };
 
 pub struct AudioCapture {
-    controller: Arc<Mutex<AudioCaptureController>>,
+    controller: AudioCaptureController,
 }
 
 impl AudioCapture {
@@ -29,19 +29,15 @@ impl AudioCapture {
     ) -> Self {
         let controller =
             AudioCaptureController::with_device_and_handler(preferred_device, error_handler);
-        Self {
-            controller: Arc::new(Mutex::new(controller)),
-        }
+        Self { controller }
     }
 
     fn from_controller(controller: AudioCaptureController) -> Self {
-        Self {
-            controller: Arc::new(Mutex::new(controller)),
-        }
+        Self { controller }
     }
 
-    pub fn controller(&self) -> Arc<Mutex<AudioCaptureController>> {
-        Arc::clone(&self.controller)
+    pub fn controller(&self) -> AudioCaptureController {
+        self.controller.clone()
     }
 }
 
@@ -59,30 +55,9 @@ impl PipelineSource for AudioCapture {
     }
 
     async fn run(&mut self, sender: Sender<Self::Output>) {
-        // Written like this so guard is dropped before await
-        let (exit_notification, result, error_handler) = {
-            let Ok(mut ctrl) = self.controller.lock() else {
-                return;
-            };
-
-            let result = ctrl.run(sender);
-
-            (
-                Arc::clone(&ctrl.exit_notification),
-                result,
-                ctrl.error_handler.clone(),
-            )
-        };
-
-        if let Err(err) = result {
-            if let Some(err_handler) = error_handler {
-                (err_handler)(err, CallbackErrorOrigin::FirstRun);
-            } else {
-                eprintln!("[Sepple] Failed to start mic capture stream!\n{err}");
-            }
-        };
-
-        exit_notification.notified().await;
+        self.controller.run(sender);
+        let exit_notification = Arc::clone(&self.controller.exit_notification);
+        exit_notification.notified().await
     }
 }
 
@@ -113,13 +88,19 @@ const FILTERED_OUT_DEVICE_IDS: &[&str] = &[
     "alsa:pulse",
 ];
 
+#[derive(Default, Clone)]
 pub struct AudioCaptureController {
-    wanted_device_id: Option<String>,
-    recorder: Option<Recorder<HandySink>>,
-    sender: Option<Sender<TimestampedVec<f32>>>,
+    state: Arc<Mutex<AudioCaptureState>>,
     error_handler:
         Option<Arc<dyn Fn(SeppleAudioError, CallbackErrorOrigin) + Send + Sync + 'static>>,
     pub exit_notification: Arc<Notify>,
+}
+
+#[derive(Default)]
+struct AudioCaptureState {
+    wanted_device_id: Option<String>,
+    recorder: Option<Recorder<HandySink>>,
+    sender: Option<Sender<TimestampedVec<f32>>>,
 }
 
 impl AudioCaptureController {
@@ -129,7 +110,10 @@ impl AudioCaptureController {
 
     pub fn with_device(device: Option<String>) -> Self {
         Self {
-            wanted_device_id: device,
+            state: Arc::new(Mutex::new(AudioCaptureState {
+                wanted_device_id: device,
+                ..Default::default()
+            })),
             ..Default::default()
         }
     }
@@ -139,47 +123,69 @@ impl AudioCaptureController {
         error_handler: impl Fn(SeppleAudioError, CallbackErrorOrigin) + Send + Sync + 'static,
     ) -> Self {
         Self {
-            wanted_device_id: device,
+            state: Arc::new(Mutex::new(AudioCaptureState {
+                wanted_device_id: device,
+                ..Default::default()
+            })),
             error_handler: Some(Arc::new(error_handler)),
             ..Default::default()
         }
     }
 
+    fn state(&self) -> MutexGuard<'_, AudioCaptureState> {
+        self.state
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+    }
+
     pub fn capture_device(&self) -> Option<CaptureDevice> {
-        self.recorder
+        self.state()
+            .recorder
             .as_ref()
             .map(|rec| rec.info().clone().device.into())
     }
 
-    pub(crate) fn run(
-        &mut self,
-        sender: Sender<TimestampedVec<f32>>,
-    ) -> Result<(), SeppleAudioError> {
-        self.sender = Some(sender.clone());
+    pub(crate) fn run(&self, sender: Sender<TimestampedVec<f32>>) {
+        self.state().sender = Some(sender.clone());
+        let result = self.run_stream(sender);
+
+        let Err(err) = result else {
+            return;
+        };
+
+        let Some(err_handler) = &self.error_handler else {
+            eprintln!("[Sepple] Failed to start mic capture stream!\n{err}");
+            return;
+        };
+        (err_handler)(err, CallbackErrorOrigin::FirstRun);
+    }
+
+    pub fn rerun(&self) -> Result<(), SeppleAudioError> {
+        let sender = {
+            let mut state = self.state();
+            if let Some(recorder) = state.recorder.take() {
+                let _ = recorder.close();
+            }
+            state.sender.clone()
+        };
+
+        let Some(sender) = sender else {
+            return Ok(());
+        };
         self.run_stream(sender)
     }
 
-    pub fn rerun(&mut self) -> Result<(), SeppleAudioError> {
-        if let Some(recorder) = self.recorder.take() {
-            let _ = recorder.close();
-        };
-
-        let Some(sender) = &self.sender else {
-            return Ok(());
-        };
-        self.run_stream(sender.clone())
-    }
-
-    fn run_stream(&mut self, sender: Sender<TimestampedVec<f32>>) -> Result<(), SeppleAudioError> {
+    fn run_stream(&self, sender: Sender<TimestampedVec<f32>>) -> Result<(), SeppleAudioError> {
+        let mut state = self.state();
         let config = RecorderConfig {
             channels: Channels::MixToMono,
             sample_rate: Some(SAMPLE_RATE_U32),
-            device: self.wanted_device_id.as_ref().cloned(),
+            device: state.wanted_device_id.clone(),
             frames_per_chunk: Some(vad::CHUNK_SIZE),
             ..Default::default()
         };
 
-        let err_handler = self.error_handler.as_ref().cloned();
+        let err_handler = self.error_handler.clone();
 
         let recorder = Recorder::open_with_failure_handler(config, move |err| {
             let err = SeppleAudioError::new(err, SeppleAudioErrorKind::MicCaptureError);
@@ -199,18 +205,18 @@ impl AudioCaptureController {
             SeppleAudioError::new(err.error, SeppleAudioErrorKind::MicCaptureStartError)
         })?;
 
-        self.recorder = Some(recorder);
+        state.recorder = Some(recorder);
 
         Ok(())
     }
 
     /// Sets microphone to the provided id if available
     /// Restarts the stream if needed
-    pub fn set_microphone<T>(&mut self, preferred_id: T) -> Result<(), SeppleAudioError>
+    pub fn set_microphone<T>(&self, preferred_id: T) -> Result<(), SeppleAudioError>
     where
         T: Into<Option<String>>,
     {
-        self.wanted_device_id = preferred_id.into();
+        self.state().wanted_device_id = preferred_id.into();
         self.rerun()
     }
 
@@ -260,18 +266,6 @@ impl AudioCaptureController {
         }
 
         true
-    }
-}
-
-impl Default for AudioCaptureController {
-    fn default() -> Self {
-        Self {
-            wanted_device_id: None,
-            recorder: None,
-            sender: None,
-            error_handler: None,
-            exit_notification: Arc::new(Notify::new()),
-        }
     }
 }
 
